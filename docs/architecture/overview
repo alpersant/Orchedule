@@ -1,0 +1,95 @@
+# Architecture Overview
+
+## Purpose
+
+This document describes the technical architecture direction for Orchedule.
+
+The goal is to build a clean, modular, and maintainable system that can evolve without rewriting the core product.
+
+## Architecture Style
+
+The recommended approach is a modular monolith with clean or hexagonal boundaries.
+
+This fits the current scope because:
+- the product is still in definition and MVP stage,
+- the expected size is limited,
+- the scheduling logic is complex but centralized,
+- and the team benefits from a simple deployment model.
+
+## High-Level Components
+
+### Backend
+- Java 17/21.
+- Spring Boot.
+- Hibernate 6.
+- REST API.
+- Modular structure by domain.
+
+### Frontend
+- Flutter.
+- Web, iOS, and Android from a single codebase.
+- Feature-based UI organization.
+
+### Data Layer
+- Relational database to be defined.
+- Persistent schedule versions.
+- Audit persistence.
+- Template persistence.
+
+## Backend Modules
+
+The backend should be split into modules such as:
+- competition management,
+- field management,
+- team management,
+- preference management,
+- scheduling engine,
+- audit engine,
+- template management.
+
+## API Principles
+
+- REST-first design.
+- English for code and API names.
+- Clear resource naming.
+- Stable DTOs.
+- Versioned endpoints if needed later.
+
+## Non-Functional Principles
+
+- Keep scheduling logic deterministic when possible.
+- Make audit results explainable.
+- Keep domain logic outside controllers.
+- Avoid overengineering early.
+- Preserve room for future extraction if growth requires it.
+
+## Persistence Principles
+
+- Store schedules as versioned snapshots.
+- Keep weekly overrides separated from global defaults.
+- Preserve audit history.
+- Avoid direct mutation of historical records.
+
+## Security Direction
+
+Security is not the main focus of the MVP, but the architecture should still support:
+- authentication,
+- authorization,
+- protected administrative actions,
+- and safe persistence practices.
+
+## Evolution Path
+
+If the product grows, the architecture can evolve toward:
+- richer modular boundaries,
+- internal package-by-feature separation,
+- and later service extraction if scale justifies it.
+
+## Next Technical Step
+
+The next step should be:
+1. final domain model,
+2. entity lifecycle,
+3. repository contracts,
+4. REST API contracts,
+5. then implementation scaffolding.

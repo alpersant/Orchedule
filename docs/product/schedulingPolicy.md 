@@ -1,0 +1,201 @@
+# Scheduling Policy
+
+## Purpose
+
+This document defines how Orchedule should assign schedules when competition availability is limited and team preferences must be balanced with fairness.
+
+The purpose of the policy is to make the scheduling engine deterministic, explainable, and adaptable to different competition types.
+
+## Policy Objectives
+
+Orchedule must optimize schedules according to the following goals:
+
+1. Respect all hard constraints.
+2. Maximize preference satisfaction.
+3. Distribute desirable and undesirable slots fairly.
+4. Avoid repeated assignments of the same day or hour.
+5. Keep the result understandable for users.
+6. Produce an audit trail for every generated schedule.
+
+## Availability Model
+
+### Competition availability
+Each competition defines:
+- active days,
+- active hours,
+- active fields,
+- and optionally week-specific overrides.
+
+### Default availability
+The default availability should be:
+- Monday to Friday.
+- 18:00, 19:00, 20:00, 21:00, 22:00.
+
+### Extended availability
+The system must also support:
+- Monday to Sunday.
+- 09:00 to 22:00.
+- Partial daily availability.
+- Different availability by week.
+
+## Team Preference Model
+
+Each team may define:
+- one excluded day or one excluded hour as its strongest restriction,
+- preferred days,
+- secondary days,
+- preferred hours,
+- secondary hours.
+
+### Preference interpretation
+- First-choice options are the preferred ones.
+- Second-choice options are allowed but less desirable.
+- Excluded options must not be assigned.
+
+### Initial configuration rule
+For the first version:
+- a team can exclude only one option at a time,
+- either one day or one hour.
+
+## Scheduling Priority Order
+
+The engine must follow this order:
+
+### 1. Hard constraints
+Never violate:
+- field overlap,
+- team overlap,
+- inactive days,
+- inactive hours,
+- inactive fields,
+- invalid competition references.
+
+### 2. Preference satisfaction
+Try to assign:
+- first-choice days,
+- first-choice hours,
+- compatible field availability.
+
+### 3. Fair rotation
+Balance the schedule so that:
+- no team is repeatedly assigned only undesirable slots,
+- no team is permanently trapped in the same time band,
+- rotation improves over the season.
+
+### 4. Tie-breaking
+If multiple solutions are equivalent:
+- choose the one with better fairness,
+- if still tied, choose the deterministic option.
+
+## Rotation Rules
+
+### Consecutive repetition control
+The system should avoid assigning the same day or hour more than two times in a row unless there is no valid alternative.
+
+### Weekly rotation
+When possible, the engine should rotate:
+- days across weeks,
+- hours across weeks,
+- fields across weeks if multiple fields exist.
+
+### Distribution principle
+Over the full competition:
+- first-choice slots should appear more often than second-choice slots,
+- second-choice slots should still appear occasionally,
+- excluded slots must never be used.
+
+## Day Assignment Policy
+
+### If a team excludes one hour
+- That hour becomes forbidden.
+- The remaining hours are treated as first-choice hours.
+- Day rotation should continue normally.
+- Repetition of the same hour should be minimized.
+
+### If a team excludes one day
+- That day becomes forbidden.
+- The user must define at least three preferred days.
+- Remaining days may become second-choice days if needed.
+- Weekly rotation must spread assignments across the preferred days.
+
+## Hour Assignment Policy
+
+### Standard case
+When a team does not exclude a day:
+- the engine should prioritize preferred hours.
+- the engine should rotate among all preferred hours.
+- the same hour should not dominate the schedule.
+
+### Day-excluded case
+When a team excludes one day:
+- the engine should also consider hour distribution more aggressively.
+- at least four hours should be treated as first-choice.
+- one hour may remain as second-choice.
+
+## Fairness Policy
+
+Fairness must be evaluated across the whole competition, not only one week.
+
+The engine should track:
+- how many times each team receives first-choice slots,
+- how many times each team receives second-choice slots,
+- how many times each team receives undesirable slots,
+- whether some teams are overexposed to the same pattern.
+
+### Fairness goals
+- Similar teams should receive similar treatment.
+- Strongly preferred slots should be distributed.
+- Unfavorable assignments should be shared.
+- The system should avoid hidden bias.
+
+## Audit Policy
+
+Every generated schedule must include an audit report.
+
+The audit must show:
+- assigned vs preferred days,
+- assigned vs preferred hours,
+- fairness distribution by team,
+- repeated slot detection,
+- hard constraint validation,
+- warnings and trade-offs.
+
+### Audit explanation rule
+If a slot was assigned against a preference, the system should explain why:
+- no better valid slot existed,
+- fairness required rotation,
+- field or day availability was limited,
+- or a higher-priority constraint took precedence.
+
+## Template Policy
+
+The system should support reusable templates for:
+- default availability,
+- team preference patterns,
+- competition configuration,
+- weekly field sets,
+- weekly day sets,
+- weekly hour sets.
+
+Templates must:
+- reduce manual input,
+- be editable after loading,
+- not lock the user into a rigid structure.
+
+## UX Policy
+
+The user interface should follow these principles:
+- Make the default case simple.
+- Reveal advanced configuration progressively.
+- Show clear labels for first-choice and second-choice options.
+- Provide immediate feedback about conflicts.
+- Make fairness visible in the audit.
+
+## Open Decisions
+
+The following points should be configurable later if needed:
+- exact fairness scoring formula,
+- whether day and hour rotation are weighted differently,
+- how many candidate schedules the engine generates internally,
+- whether manual overrides lock future rotations,
+- whether the user can copy templates between competitions.

@@ -4,9 +4,9 @@
 [![License](https://img.shields.io/badge/license-TBD-lightgrey)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-web%20%7C%20iOS%20%7C%20Android-brightgreen)](https://flutter.dev)
 
-Orchedule is a cross-platform sports scheduling application focused on generating fair, flexible, and optimized schedules for competitions with limited fields and time slots.
+Orchedule is a cross-platform sports scheduling application designed to generate fair, flexible, and optimized competition schedules under limited field and time availability.
 
-The product balances team preferences with equitable rotation across available hours, helping organizers produce schedules that are practical, consistent, and easier to manage.
+The product balances team preferences, weekly availability changes, equitable rotation across the season, and transparent schedule auditing.
 
 ## Table of Contents
 
@@ -25,19 +25,20 @@ The product balances team preferences with equitable rotation across available h
 
 ## Overview
 
-Orchedule is designed to solve one of the most common and difficult operational problems in sports competitions: assigning match schedules under limited resources while respecting preferences and fairness.
+Orchedule is designed to solve one of the most common and difficult operational problems in sports competitions: assigning match schedules under limited resources while keeping the result fair and understandable.
 
 The application is being built as a cross-platform product with a strong focus on usability, scalability, and clear documentation from day one.
 
 ## Problem Statement
 
 Sports organizers often need to schedule matches with:
-- A limited number of fields.
-- A limited number of time slots.
+- Limited fields.
+- Limited time slots.
+- Weekly changes in availability.
 - Multiple teams with different preferences.
-- A need for fair rotation across all available hours.
+- A need for fair rotation across the season.
 
-Manual scheduling usually becomes slow, repetitive, and difficult to balance fairly. Orchedule aims to automate that process with an optimization-oriented approach.
+Manual scheduling is slow, hard to balance, and often perceived as unfair. Orchedule aims to automate that process with an optimization-oriented approach.
 
 ## Product Vision
 
@@ -61,8 +62,8 @@ The application should:
 
 ## Planned Features
 
-- Team-based schedule generation.
-- Preference-aware slot assignment.
+- Competition scheduling by teams, fields, and time slots.
+- Preference-based assignment.
 - Fair rotation across time slots.
 - Field and availability constraints.
 - Calendar visualization.
@@ -70,6 +71,7 @@ The application should:
 - Schedule metrics and validation.
 - Audit view for rule and fairness checks.
 - Multiplatform user interface.
+- Reusable templates for fast setup.
 
 ## Target Users
 
@@ -109,6 +111,7 @@ Orchedule is intended for:
 ├── docs/
 │   ├── product/
 │   ├── ux/
+│   ├── domain/
 │   └── architecture/
 ├── assets/
 ├── README.md
@@ -132,8 +135,9 @@ The current work is focused on:
 - [x] Define project name.
 - [x] Define the main scheduling problem.
 - [x] Draft the initial README.
-- [ ] Define MVP scope.
-- [ ] Define business rules.
+- [x] Consolidate product documents.
+- [ ] Define MVP scope in final form.
+- [ ] Define business rules in final form.
 
 ### Phase 2: Architecture
 - [ ] Design domain model.
