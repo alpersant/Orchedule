@@ -102,6 +102,47 @@ Orchedule is intended for:
 ### Deployment
 - To be defined.
 
+## Local Configuration
+
+This project does not store secrets in the repository.
+
+Before running the backend, define the required environment variables locally.
+
+### Required environment variables
+
+```bash
+export DB_URL=jdbc:postgresql://localhost:5432/orchedule
+export DB_USERNAME=your_local_username
+export DB_PASSWORD=your_local_password
+export SPRING_PROFILES_ACTIVE=dev
+```
+
+### Optional environment variables
+
+```bash
+export SERVER_PORT=8080
+export LOG_SQL_LEVEL=info
+```
+
+### Example files
+
+The repository includes:
+- `.env.example`
+- `src/main/resources/application-local.yml.example`
+
+These files are examples only and must not contain real credentials.
+
+### Security note
+
+Do not commit:
+- `.env`
+- local `application-local.yml`
+- database passwords
+- private keys
+- tokens or secrets of any kind
+
+If any secret is committed by mistake, rotate it immediately and remove it from Git history.
+
 ## Repository Structure
 
 ```text
