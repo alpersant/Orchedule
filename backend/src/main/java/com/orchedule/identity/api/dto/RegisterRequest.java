@@ -1,4 +1,4 @@
-package com.orchedule.identity.api;
+package com.orchedule.identity.api.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -11,11 +11,11 @@ public record RegisterRequest(
         String email,
 
         @NotBlank(message = "Password is required")
-        @Size(min = 8, message = "Password must be at least 8 characters")
+        @Size(min = 8, max = 100, message = "Password must be at least 8 characters")
         String password,
 
-        @NotBlank(message = "Full name is required")
-        @Size(min = 2, message = "Full name must be at least 2 characters")
+        @NotBlank(message = "Full fullName is required")
+        @Size(min = 2, max = 100, message = "Full fullName must be at least 2 characters")
         String fullName
 ) {
 }

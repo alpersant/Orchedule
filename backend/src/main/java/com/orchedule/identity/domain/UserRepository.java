@@ -11,5 +11,5 @@ public interface UserRepository {
 
     boolean existsByEmail(String email);
 
-    User save(User user);
+    UUID register(RegisterUserCommand command);
 }

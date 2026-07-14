@@ -1,5 +1,6 @@
 package com.orchedule.identity.infrastructure.persistence;
 
+import com.orchedule.identity.domain.RegisterUserCommand;
 import com.orchedule.identity.domain.User;
 import com.orchedule.identity.domain.UserRepository;
 import org.springframework.stereotype.Repository;
@@ -32,9 +33,9 @@ public class UserRepositoryAdapter implements UserRepository {
     }
 
     @Override
-    public User save(User user) {
-        UserJpaEntity entity = UserPersistenceMapper.toEntity(user);
+    public UUID register(RegisterUserCommand command) {
+        UserJpaEntity entity = UserPersistenceMapper.toEntity(command);
         UserJpaEntity saved = repository.save(entity);
-        return UserPersistenceMapper.toDomain(saved);
+        return saved.getId();
     }
 }

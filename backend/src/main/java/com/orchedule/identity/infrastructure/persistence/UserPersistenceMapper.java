@@ -1,14 +1,33 @@
 package com.orchedule.identity.infrastructure.persistence;
 
+import com.orchedule.identity.domain.RegisterUserCommand;
 import com.orchedule.identity.domain.User;
+
+import java.time.OffsetDateTime;
+import java.util.UUID;
 
 public final class UserPersistenceMapper {
 
     private UserPersistenceMapper() {
     }
 
+    public static UserJpaEntity toEntity(RegisterUserCommand command) {
+        OffsetDateTime now = OffsetDateTime.now();
+
+        UserJpaEntity entity = new UserJpaEntity();
+        entity.setId(UUID.randomUUID());
+        entity.setEmail(command.email().trim().toLowerCase());
+        entity.setFullName(command.fullName().trim());
+        entity.setPasswordHash(command.passwordHash());
+        entity.setRole(command.role());
+        entity.setActive(command.active());
+        entity.setEmailVerified(command.emailVerified());
+        entity.setCreatedAt(now);
+        entity.setUpdatedAt(now);
+        return entity;
+    }
+
     public static User toDomain(UserJpaEntity entity) {
-        if (entity == null) return null;
         return new User(
                 entity.getId(),
                 entity.getEmail(),
@@ -20,21 +39,5 @@ public final class UserPersistenceMapper {
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );
-    }
-
-    public static UserJpaEntity toEntity(User user) {
-        if (user == null) return null;
-
-        UserJpaEntity entity = new UserJpaEntity();
-        entity.setId(user.getId());
-        entity.setEmail(user.getEmail());
-        entity.setPasswordHash(user.getPasswordHash());
-        entity.setFullName(user.getFullName());
-        entity.setRole(user.getRole());
-        entity.setActive(user.isActive());
-        entity.setEmailVerified(user.isEmailVerified());
-        entity.setCreatedAt(user.getCreatedAt());
-        entity.setUpdatedAt(user.getUpdatedAt());
-        return entity;
     }
 }
