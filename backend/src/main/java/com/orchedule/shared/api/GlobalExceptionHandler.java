@@ -1,91 +1,91 @@
 package com.orchedule.shared.api;
 
-import com.orchedule.identity.application.exception.AlreadyExistsException;
-import com.orchedule.season.application.exception.InvalidSeasonException;
-import com.orchedule.season.application.exception.SeasonNotFoundException;
+import com.orchedule.shared.exception.ApplicationException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.OffsetDateTime;
+import java.net.URI;
 import java.util.List;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(SeasonNotFoundException.class)
-    public org.springframework.http.ResponseEntity<ApiErrorResponse> handleSeasonNotFound(
-            SeasonNotFoundException ex,
+    @ExceptionHandler(ApplicationException.class)
+    public ProblemDetail handleApplicationException(
+            ApplicationException ex,
             HttpServletRequest request
     ) {
-        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI(), List.of());
-    }
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(ex.getHttpStatus(), ex.getMessage());
+        problem.setTitle(ex.getHttpStatus().getReasonPhrase());
+        problem.setType(URI.create("https://api.orchedule.com/errors/" + ex.getErrorCode().toLowerCase()));
+        problem.setInstance(URI.create(request.getRequestURI()));
+        problem.setProperty("errorCode", ex.getErrorCode());
 
-    @ExceptionHandler({
-            InvalidSeasonException.class,
-            AlreadyExistsException.class,
-            ConstraintViolationException.class
-    })
-    public org.springframework.http.ResponseEntity<ApiErrorResponse> handleBadRequest(
-            RuntimeException ex,
-            HttpServletRequest request
-    ) {
-        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI(), List.of());
+        return problem;
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public org.springframework.http.ResponseEntity<ApiErrorResponse> handleMethodArgumentNotValid(
+    public ProblemDetail handleMethodArgumentNotValid(
             MethodArgumentNotValidException ex,
             HttpServletRequest request
     ) {
-        List<ApiValidationError> validationErrors = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(fieldError -> new ApiValidationError(
-                        fieldError.getField(),
-                        fieldError.getDefaultMessage()
-                ))
-                .toList();
-
-        return buildResponse(
-                HttpStatus.BAD_REQUEST,
-                "Request validation failed",
-                request.getRequestURI(),
-                validationErrors
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Request validation failed");
+        problem.setTitle("Bad Request");
+        problem.setType(URI.create("https://api.orchedule.com/errors/request-validation-failed"));
+        problem.setInstance(URI.create(request.getRequestURI()));
+        problem.setProperty(
+                "errors",
+                ex.getBindingResult()
+                        .getFieldErrors()
+                        .stream()
+                        .map(fieldError -> new ApiValidationError(
+                                fieldError.getField(),
+                                fieldError.getDefaultMessage()
+                        ))
+                        .toList()
         );
+
+        return problem;
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ProblemDetail handleConstraintViolation(
+            ConstraintViolationException ex,
+            HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Constraint validation failed");
+        problem.setTitle("Bad Request");
+        problem.setType(URI.create("https://api.orchedule.com/errors/constraint-validation-failed"));
+        problem.setInstance(URI.create(request.getRequestURI()));
+        problem.setProperty(
+                "errors",
+                ex.getConstraintViolations()
+                        .stream()
+                        .map(violation -> new ApiValidationError(
+                                violation.getPropertyPath().toString(),
+                                violation.getMessage()
+                        ))
+                        .toList()
+        );
+
+        return problem;
     }
 
     @ExceptionHandler(Exception.class)
-    public org.springframework.http.ResponseEntity<ApiErrorResponse> handleUnexpectedException(
+    public ProblemDetail handleUnexpectedException(
             Exception ex,
             HttpServletRequest request
     ) {
-        return buildResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "Unexpected internal error",
-                request.getRequestURI(),
-                List.of()
-        );
-    }
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected internal error");
+        problem.setTitle("Internal Server Error");
+        problem.setType(URI.create("https://api.orchedule.com/errors/internal-server-error"));
+        problem.setInstance(URI.create(request.getRequestURI()));
 
-    private org.springframework.http.ResponseEntity<ApiErrorResponse> buildResponse(
-            HttpStatus status,
-            String message,
-            String path,
-            List<ApiValidationError> validationErrors
-    ) {
-        ApiErrorResponse body = new ApiErrorResponse(
-                OffsetDateTime.now(),
-                status.value(),
-                status.getReasonPhrase(),
-                message,
-                path,
-                validationErrors
-        );
-
-        return org.springframework.http.ResponseEntity.status(status).body(body);
+        return problem;
     }
 }

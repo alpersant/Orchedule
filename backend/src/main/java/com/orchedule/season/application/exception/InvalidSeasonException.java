@@ -1,8 +1,10 @@
 package com.orchedule.season.application.exception;
 
-public class InvalidSeasonException extends RuntimeException {
+import com.orchedule.shared.exception.BusinessRuleException;
+
+public class InvalidSeasonException extends BusinessRuleException {
 
     public InvalidSeasonException(String message) {
-        super(message);
+        super("INVALID_SEASON", message);
     }
 }

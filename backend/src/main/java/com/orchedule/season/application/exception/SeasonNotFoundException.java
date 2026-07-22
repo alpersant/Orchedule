@@ -1,10 +1,12 @@
 package com.orchedule.season.application.exception;
 
+import com.orchedule.shared.exception.NotFoundException;
+
 import java.util.UUID;
 
-public class SeasonNotFoundException extends RuntimeException {
+public class SeasonNotFoundException extends NotFoundException {
 
     public SeasonNotFoundException(UUID seasonId) {
-        super("Season not found: " + seasonId);
+        super("SEASON_NOT_FOUND", "Season not found: " + seasonId);
     }
 }
