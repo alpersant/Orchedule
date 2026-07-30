@@ -10,9 +10,9 @@ import com.orchedule.competition.domain.CompetitionDay;
 import com.orchedule.competition.domain.CompetitionHour;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -33,12 +33,12 @@ class CompetitionControllerWebMvcTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean private CreateCompetitionService createCompetitionService;
-    @MockBean private GetCompetitionService getCompetitionService;
-    @MockBean private UpdateCompetitionService updateCompetitionService;
-    @MockBean private UpdateCompetitionDefaultsService updateCompetitionDefaultsService;
-    @MockBean private ActivateCompetitionService activateCompetitionService;
-    @MockBean private CloseCompetitionService closeCompetitionService;
+    @MockitoBean private CreateCompetitionService createCompetitionService;
+    @MockitoBean private GetCompetitionService getCompetitionService;
+    @MockitoBean private UpdateCompetitionService updateCompetitionService;
+    @MockitoBean private UpdateCompetitionDefaultsService updateCompetitionDefaultsService;
+    @MockitoBean private ActivateCompetitionService activateCompetitionService;
+    @MockitoBean private CloseCompetitionService closeCompetitionService;
 
     @Test
     void shouldCreateCompetitionAndReturn201() throws Exception {

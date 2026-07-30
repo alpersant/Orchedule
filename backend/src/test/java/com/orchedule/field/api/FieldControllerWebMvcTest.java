@@ -8,9 +8,9 @@ import com.orchedule.field.application.exception.FieldNotFoundException;
 import com.orchedule.field.domain.Field;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -30,13 +30,13 @@ class FieldControllerWebMvcTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean private CreateFieldService createFieldService;
-    @MockBean private GetFieldService getFieldService;
-    @MockBean private UpdateFieldService updateFieldService;
-    @MockBean private ActivateFieldService activateFieldService;
-    @MockBean private DeactivateFieldService deactivateFieldService;
-    @MockBean private SetFieldAvailabilityForWeekService setAvailabilityService;
-    @MockBean private GetFieldAvailabilityService getAvailabilityService;
+    @MockitoBean private CreateFieldService createFieldService;
+    @MockitoBean private GetFieldService getFieldService;
+    @MockitoBean private UpdateFieldService updateFieldService;
+    @MockitoBean private ActivateFieldService activateFieldService;
+    @MockitoBean private DeactivateFieldService deactivateFieldService;
+    @MockitoBean private SetFieldAvailabilityForWeekService setAvailabilityService;
+    @MockitoBean private GetFieldAvailabilityService getAvailabilityService;
 
     @Test
     void shouldCreateFieldAndReturn201() throws Exception {
