@@ -1,4 +1,4 @@
-package com.orchedule.scheduling.infrastructure.integration;
+package com.orchedule.team.infrastructure.integration;
 
 import com.orchedule.scheduling.application.exception.InvalidScheduleException;
 import com.orchedule.scheduling.application.port.SeasonContextPort;
@@ -21,6 +21,13 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * FIXED (correct file, path: team/infrastructure/integration/):
+ * - Removed unused GetTeamPreferenceService dependency (it was never
+ *   actually used in getProfilesForSeason, only getForAllActiveTeams was).
+ * - Injected SeasonContextPort to resolve seasonId -> competitionId,
+ *   since getForAllActiveTeams now requires a competitionId.
+ */
 @Component
 public class TeamPreferencesAdapter implements TeamPreferencesPort {
 

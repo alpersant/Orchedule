@@ -1,7 +1,9 @@
 package com.orchedule.team.api.error;
 
 import com.orchedule.identity.api.error.ApiError;
+import com.orchedule.team.application.exception.InvalidTeamPreferenceException;
 import com.orchedule.team.application.exception.TeamNotFoundException;
+import com.orchedule.team.application.exception.TeamPreferenceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;

@@ -1,14 +1,14 @@
 package com.orchedule.team.infrastructure.persistence;
 
+import com.orchedule.team.domain.MatchHour;
 import com.orchedule.team.domain.PreferencePriority;
 import jakarta.persistence.*;
 
 import java.io.Serializable;
-import java.time.LocalTime;
 import java.util.Objects;
 import java.util.UUID;
 
-/** Maps to team_preference_hour: composite PK (team_preference_id, hour). */
+
 @Entity
 @Table(name = "team_preference_hour")
 @IdClass(TeamPreferenceHourEntity.Key.class)
@@ -16,12 +16,16 @@ public class TeamPreferenceHourEntity {
 
     @Id
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "team_preference_id", nullable = false)
+    @JoinColumns({
+            @JoinColumn(name = "team_id", referencedColumnName = "team_id", nullable = false),
+            @JoinColumn(name = "competition_id", referencedColumnName = "competition_id", nullable = false)
+    })
     private TeamPreferenceEntity teamPreference;
 
     @Id
+    @Enumerated(EnumType.STRING)
     @Column(name = "hour", nullable = false, length = 20)
-    private String hour;
+    private MatchHour hour;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "priority", nullable = false, length = 20)
@@ -29,18 +33,18 @@ public class TeamPreferenceHourEntity {
 
     protected TeamPreferenceHourEntity() {}
 
-    public TeamPreferenceHourEntity(LocalTime hour, PreferencePriority priority) {
-        this.hour = hour.toString();
+    public TeamPreferenceHourEntity(MatchHour hour, PreferencePriority priority) {
+        this.hour = hour;
         this.priority = priority;
     }
 
     public void setTeamPreference(TeamPreferenceEntity teamPreference) { this.teamPreference = teamPreference; }
-    public LocalTime getHour() { return LocalTime.parse(hour); }
+    public MatchHour getHour() { return hour; }
     public PreferencePriority getPriority() { return priority; }
 
     public static class Key implements Serializable {
-        private UUID teamPreference;
-        private String hour;
+        private TeamPreferenceEntity.Key teamPreference;
+        private MatchHour hour;
 
         public Key() {}
 

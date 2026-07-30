@@ -36,7 +36,8 @@ public class ScheduleInputAssembler {
         UUID competitionId = seasonContextPort.getCompetitionIdForSeason(seasonId);
 
         List<TeamScheduleProfile> profiles = teamPreferencesPort.getProfilesForSeason(seasonId);
-        FieldSchedulingContext fieldContext = fieldAvailabilityPort.getSchedulingContext(competitionId);
+        FieldSchedulingContext fieldContext =
+                fieldAvailabilityPort.getSchedulingContext(competitionId, seasonId, weekNumber);
 
         return new GenerateRoundCommand(seasonId, weekNumber, profiles,
                 fieldContext.openDays(), fieldContext.openHours(), fieldContext.availableFieldIds());

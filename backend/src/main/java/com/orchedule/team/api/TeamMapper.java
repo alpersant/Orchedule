@@ -5,6 +5,7 @@ import com.orchedule.team.api.dto.TeamPreferenceResponse;
 import com.orchedule.team.api.dto.TeamResponse;
 import com.orchedule.team.api.dto.TimePreferenceDto;
 import com.orchedule.team.domain.Team;
+import com.orchedule.team.domain.TeamPreference;
 
 public final class TeamMapper {
 
@@ -17,14 +18,14 @@ public final class TeamMapper {
 
     public static TeamPreferenceResponse toResponse(TeamPreference preference) {
         return new TeamPreferenceResponse(
-                preference.teamId(),
-                preference.restrictionType(),
-                preference.excludedDay(),
-                preference.excludedHour(),
-                preference.dayPreferences().stream()
+                preference.getTeamId(),
+                preference.getRestrictionType(),
+                preference.getExcludedDay(),
+                preference.getExcludedHour(),
+                preference.getDayPreferences().stream()
                         .map(p -> new DayPreferenceDto(p.day(), p.priority()))
                         .toList(),
-                preference.timePreferences().stream()
+                preference.getTimePreferences().stream()
                         .map(p -> new TimePreferenceDto(p.hour(), p.priority()))
                         .toList()
         );

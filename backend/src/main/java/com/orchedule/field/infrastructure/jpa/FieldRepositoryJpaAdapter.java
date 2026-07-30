@@ -21,8 +21,9 @@ public class FieldRepositoryJpaAdapter implements FieldRepository {
     @Override
     public Field save(Field field) {
         FieldEntity entity = new FieldEntity(
-                field.getId(), field.getVenueId(), field.getName(),
-                field.getStatus(), field.getCreatedAt(), field.getUpdatedAt());
+                field.getId(), field.getVenueId(), field.getName(), field.getStatus(),
+                field.getOpenDays(), field.getOpenHours(),
+                field.getCreatedAt(), field.getUpdatedAt());
         FieldEntity saved = springDataFieldRepository.save(entity);
         return toDomain(saved);
     }
@@ -34,14 +35,12 @@ public class FieldRepositoryJpaAdapter implements FieldRepository {
 
     @Override
     public List<Field> findByVenueId(UUID venueId) {
-        return springDataFieldRepository.findByVenueId(venueId).stream()
-                .map(this::toDomain).toList();
+        return springDataFieldRepository.findByVenueId(venueId).stream().map(this::toDomain).toList();
     }
 
     @Override
     public List<Field> findAllActive() {
-        return springDataFieldRepository.findByStatus(FieldStatus.ACTIVE).stream()
-                .map(this::toDomain).toList();
+        return springDataFieldRepository.findByStatus(FieldStatus.ACTIVE).stream().map(this::toDomain).toList();
     }
 
     @Override
@@ -50,7 +49,8 @@ public class FieldRepositoryJpaAdapter implements FieldRepository {
     }
 
     private Field toDomain(FieldEntity entity) {
-        return new Field(entity.getId(), entity.getVenueId(), entity.getName(),
-                entity.getStatus(), entity.getCreatedAt(), entity.getUpdatedAt());
+        return new Field(entity.getId(), entity.getVenueId(), entity.getName(), entity.getStatus(),
+                entity.getOpenDaysSet(), entity.getOpenHoursSet(),
+                entity.getCreatedAt(), entity.getUpdatedAt());
     }
 }

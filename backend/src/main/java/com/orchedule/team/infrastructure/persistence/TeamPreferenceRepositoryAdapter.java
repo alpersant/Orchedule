@@ -1,12 +1,16 @@
 package com.orchedule.team.infrastructure.persistence;
 
-import com.orchedule.team.domain.*;
+import com.orchedule.team.domain.DayPreference;
+import com.orchedule.team.domain.TeamPreference;
+import com.orchedule.team.domain.TeamPreferenceRepository;
+import com.orchedule.team.domain.TimePreference;
 import org.springframework.stereotype.Repository;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
 
 @Repository
 public class TeamPreferenceRepositoryAdapter implements TeamPreferenceRepository {
@@ -19,14 +23,15 @@ public class TeamPreferenceRepositoryAdapter implements TeamPreferenceRepository
 
     @Override
     public TeamPreference save(TeamPreference preference) {
-        TeamPreferenceEntity entity = repository.findById(preference.getTeamId())
+        TeamPreferenceEntity entity = repository
+                .findByTeamIdAndCompetitionId(preference.getTeamId(), preference.getCompetitionId())
                 .map(existing -> {
                     existing.applyUpdate(preference.getRestrictionType(), preference.getExcludedDay(),
                             preference.getExcludedHour(), OffsetDateTime.now());
                     return existing;
                 })
-                .orElseGet(() -> new TeamPreferenceEntity(preference.getTeamId(), preference.getRestrictionType(),
-                        preference.getExcludedDay(), preference.getExcludedHour(),
+                .orElseGet(() -> new TeamPreferenceEntity(preference.getTeamId(), preference.getCompetitionId(),
+                        preference.getRestrictionType(), preference.getExcludedDay(), preference.getExcludedHour(),
                         preference.getCreatedAt(), preference.getUpdatedAt()));
 
         List<TeamPreferenceDayEntity> dayEntities = preference.getDayPreferences().stream()
@@ -34,7 +39,7 @@ public class TeamPreferenceRepositoryAdapter implements TeamPreferenceRepository
                 .toList();
         entity.replaceDayPreferences(dayEntities);
 
-        List<TeamPreferenceHourEntity> hourEntities = preference.getHourPreferences().stream()
+        List<TeamPreferenceHourEntity> hourEntities = preference.getTimePreferences().stream()
                 .map(h -> new TeamPreferenceHourEntity(h.hour(), h.priority()))
                 .toList();
         entity.replaceHourPreferences(hourEntities);
@@ -43,23 +48,29 @@ public class TeamPreferenceRepositoryAdapter implements TeamPreferenceRepository
     }
 
     @Override
-    public Optional<TeamPreference> findByTeamId(UUID teamId) {
-        return repository.findByTeamId(teamId).map(this::toDomain);
+    public Optional<TeamPreference> findByTeamIdAndCompetitionId(UUID teamId, UUID competitionId) {
+        return repository.findByTeamIdAndCompetitionId(teamId, competitionId).map(this::toDomain);
     }
 
     @Override
-    public boolean existsByTeamId(UUID teamId) {
-        return repository.existsByTeamId(teamId);
+    public List<TeamPreference> findByCompetitionId(UUID competitionId) {
+        return repository.findByCompetitionId(competitionId).stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public boolean existsByTeamIdAndCompetitionId(UUID teamId, UUID competitionId) {
+        return repository.existsByTeamIdAndCompetitionId(teamId, competitionId);
     }
 
     private TeamPreference toDomain(TeamPreferenceEntity entity) {
-        List<TeamPreferenceDay> days = entity.getDayPreferences().stream()
-                .map(d -> new TeamPreferenceDay(d.getDay(), d.getPriority()))
+        List<DayPreference> days = entity.getDayPreferences().stream()
+                .map(d -> new DayPreference(d.getDay(), d.getPriority()))
                 .toList();
-        List<TeamPreferenceHour> hours = entity.getHourPreferences().stream()
-                .map(h -> new TeamPreferenceHour(h.getHour(), h.getPriority()))
+        List<TimePreference> hours = entity.getHourPreferences().stream()
+                .map(h -> new TimePreference(h.getHour(), h.getPriority()))
                 .toList();
-        return new TeamPreference(entity.getTeamId(), entity.getRestrictionType(), entity.getExcludedDay(),
-                entity.getExcludedHour(), days, hours, entity.getCreatedAt(), entity.getUpdatedAt());
+        return new TeamPreference(entity.getTeamId(), entity.getTeamId(), entity.getCompetitionId(),
+                entity.getRestrictionType(), entity.getExcludedDay(), entity.getExcludedHour(),
+                days, hours, entity.getCreatedAt(), entity.getUpdatedAt());
     }
 }

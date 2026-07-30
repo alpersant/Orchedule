@@ -7,8 +7,10 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
+import java.util.UUID;
 
 public record SaveTeamPreferenceRequest(
+        @NotNull UUID competitionId,
         @NotNull RestrictionType restrictionType,
         MatchDay excludedDay,
         MatchHour excludedHour,

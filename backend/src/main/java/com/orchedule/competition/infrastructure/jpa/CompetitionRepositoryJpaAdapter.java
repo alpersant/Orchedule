@@ -23,7 +23,8 @@ public class CompetitionRepositoryJpaAdapter implements CompetitionRepository {
         CompetitionEntity entity = new CompetitionEntity(
                 competition.getId(), competition.getName(), competition.getDescription(),
                 competition.getStatus(), competition.getDefaultDays(), competition.getDefaultHours(),
-                competition.getDefaultFieldCount(), competition.getCreatedAt(), competition.getUpdatedAt());
+                competition.getDefaultFieldCount(), competition.getPreferencePolicy(),
+                competition.getCreatedAt(), competition.getUpdatedAt());
         CompetitionEntity saved = springDataCompetitionRepository.save(entity);
         return toDomain(saved);
     }
@@ -51,6 +52,7 @@ public class CompetitionRepositoryJpaAdapter implements CompetitionRepository {
     private Competition toDomain(CompetitionEntity entity) {
         return new Competition(entity.getId(), entity.getName(), entity.getDescription(),
                 entity.getStatus(), entity.getDefaultDays(), entity.getDefaultHours(),
-                entity.getDefaultFieldCount(), entity.getCreatedAt(), entity.getUpdatedAt());
+                entity.getDefaultFieldCount(), entity.getPreferencePolicy(),
+                entity.getCreatedAt(), entity.getUpdatedAt());
     }
 }

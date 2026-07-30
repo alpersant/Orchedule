@@ -5,59 +5,72 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Aggregate root holding a team's day/hour scheduling preferences for a
- * specific competition. Kept SEPARATE from the {@link Team} record
- * (identity: id, name, active) because Team is intentionally minimal and
- * immutable — preferences are a distinct concern with their own lifecycle
- * (they change often, independently of the team's name/active status) and
- * their own competition-scoped validation rules (see
- * com.orchedule.team.domain.preferences.TeamPreferenceValidationStrategy).
- *
- * One Team may have at most one TeamPreferences row per competition it is
- * registered in — enforced by a unique (team_id, competition_id)
- * constraint at the persistence level.
+ * REWRITTEN. This is the aggregate root; it was missing restrictionType /
+ * excludedDay / excludedHour entirely (present in RestrictionType,
+ * validated by TeamPreferenceValidator, but never stored here — a real
+ * gap, not a naming issue). It also used TeamDayPreference/TeamHourPreference
+ * (DayOfWeek + boolean primary) while every caller (SaveTeamPreferenceService,
+ * TeamPreferenceValidator) operates on DayPreference/TimePreference
+ * (MatchDay/MatchHour + PreferencePriority). DayPreference/TimePreference is
+ * the richer, validated model (min-primary-days rules, exclusion rules) so
+ * it is kept as the ONE preference item type. TeamDayPreference/
+ * TeamHourPreference are now obsolete — delete them (see manifest).
  */
 public class TeamPreference {
 
     private final UUID id;
     private final UUID teamId;
     private final UUID competitionId;
-    private List<TeamDayPreference> dayPreferences;
-    private List<TeamHourPreference> hourPreferences;
+    private RestrictionType restrictionType;
+    private MatchDay excludedDay;
+    private MatchHour excludedHour;
+    private List<DayPreference> dayPreferences;
+    private List<TimePreference> timePreferences;
     private final OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
-    public TeamPreference(UUID id, UUID teamId, UUID competitionId,
-                          List<TeamDayPreference> dayPreferences, List<TeamHourPreference> hourPreferences,
-                          OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+    public TeamPreference(UUID id, UUID teamId, UUID competitionId, RestrictionType restrictionType,
+                           MatchDay excludedDay, MatchHour excludedHour,
+                           List<DayPreference> dayPreferences, List<TimePreference> timePreferences,
+                           OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.id = id;
         this.teamId = teamId;
         this.competitionId = competitionId;
+        this.restrictionType = restrictionType;
+        this.excludedDay = excludedDay;
+        this.excludedHour = excludedHour;
         this.dayPreferences = List.copyOf(dayPreferences);
-        this.hourPreferences = List.copyOf(hourPreferences);
+        this.timePreferences = List.copyOf(timePreferences);
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
 
-    public static TeamPreference create(UUID teamId, UUID competitionId,
-                                        List<TeamDayPreference> dayPreferences,
-                                        List<TeamHourPreference> hourPreferences) {
+    public static TeamPreference create(UUID teamId, UUID competitionId, RestrictionType restrictionType,
+                                         MatchDay excludedDay, MatchHour excludedHour,
+                                         List<DayPreference> dayPreferences, List<TimePreference> timePreferences) {
         OffsetDateTime now = OffsetDateTime.now();
-        return new TeamPreference(UUID.randomUUID(), teamId, competitionId,
-                dayPreferences, hourPreferences, now, now);
+        return new TeamPreference(UUID.randomUUID(), teamId, competitionId, restrictionType,
+                excludedDay, excludedHour, dayPreferences, timePreferences, now, now);
     }
 
-    public void update(List<TeamDayPreference> dayPreferences, List<TeamHourPreference> hourPreferences) {
+    public void update(RestrictionType restrictionType, MatchDay excludedDay, MatchHour excludedHour,
+                        List<DayPreference> dayPreferences, List<TimePreference> timePreferences) {
+        this.restrictionType = restrictionType;
+        this.excludedDay = excludedDay;
+        this.excludedHour = excludedHour;
         this.dayPreferences = List.copyOf(dayPreferences);
-        this.hourPreferences = List.copyOf(hourPreferences);
+        this.timePreferences = List.copyOf(timePreferences);
         this.updatedAt = OffsetDateTime.now();
     }
 
     public UUID getId() { return id; }
     public UUID getTeamId() { return teamId; }
     public UUID getCompetitionId() { return competitionId; }
-    public List<TeamDayPreference> getDayPreferences() { return List.copyOf(dayPreferences); }
-    public List<TeamHourPreference> getHourPreferences() { return List.copyOf(hourPreferences); }
+    public RestrictionType getRestrictionType() { return restrictionType; }
+    public MatchDay getExcludedDay() { return excludedDay; }
+    public MatchHour getExcludedHour() { return excludedHour; }
+    public List<DayPreference> getDayPreferences() { return List.copyOf(dayPreferences); }
+    public List<TimePreference> getTimePreferences() { return List.copyOf(timePreferences); }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
 }

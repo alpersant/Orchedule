@@ -6,7 +6,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface SpringDataTeamPreferenceRepository extends JpaRepository<TeamPreferenceEntity, UUID> {
+public interface SpringDataTeamPreferenceRepository
+        extends JpaRepository<TeamPreferenceEntity, TeamPreferenceEntity.Key> {
 
     Optional<TeamPreferenceEntity> findByTeamIdAndCompetitionId(UUID teamId, UUID competitionId);
 

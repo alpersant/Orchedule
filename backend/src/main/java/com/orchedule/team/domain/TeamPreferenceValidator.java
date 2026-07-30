@@ -1,5 +1,7 @@
 package com.orchedule.team.domain;
 
+import com.orchedule.team.application.exception.InvalidTeamPreferenceException;
+
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -56,7 +58,7 @@ public final class TeamPreferenceValidator {
 
     private static void validateMinimumPrimaryDays(List<DayPreference> dayPreferences) {
         long primaryDays = dayPreferences.stream()
-                .filter(p -> p.priority() == PreferencePriority.PRIMARY)
+                .filter(p -> p.priority() == PreferencePriority.FIRST)
                 .count();
 
         if (primaryDays < 3) {
@@ -66,7 +68,7 @@ public final class TeamPreferenceValidator {
 
     private static void validateMinimumPrimaryHours(List<TimePreference> timePreferences) {
         long primaryHours = timePreferences.stream()
-                .filter(p -> p.priority() == PreferencePriority.PRIMARY)
+                .filter(p -> p.priority() == PreferencePriority.FIRST)
                 .count();
 
         if (primaryHours < 4) {

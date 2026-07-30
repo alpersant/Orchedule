@@ -3,6 +3,7 @@ package com.orchedule.competition.infrastructure.jpa;
 import com.orchedule.competition.domain.CompetitionDay;
 import com.orchedule.competition.domain.CompetitionHour;
 import com.orchedule.competition.domain.CompetitionStatus;
+import com.orchedule.competition.domain.PreferencePolicy;
 import jakarta.persistence.*;
 
 import java.time.OffsetDateTime;
@@ -42,6 +43,10 @@ public class CompetitionEntity {
     @Column(name = "default_field_count", nullable = false)
     private int defaultFieldCount;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "preference_policy", nullable = false, length = 20)
+    private PreferencePolicy preferencePolicy;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
@@ -52,7 +57,8 @@ public class CompetitionEntity {
 
     public CompetitionEntity(UUID id, String name, String description, CompetitionStatus status,
                               Set<CompetitionDay> defaultDays, Set<CompetitionHour> defaultHours,
-                              int defaultFieldCount, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+                              int defaultFieldCount, PreferencePolicy preferencePolicy,
+                              OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -60,6 +66,7 @@ public class CompetitionEntity {
         this.defaultDays = new HashSet<>(defaultDays);
         this.defaultHours = new HashSet<>(defaultHours);
         this.defaultFieldCount = defaultFieldCount;
+        this.preferencePolicy = preferencePolicy;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -71,6 +78,7 @@ public class CompetitionEntity {
     public Set<CompetitionDay> getDefaultDays() { return defaultDays; }
     public Set<CompetitionHour> getDefaultHours() { return defaultHours; }
     public int getDefaultFieldCount() { return defaultFieldCount; }
+    public PreferencePolicy getPreferencePolicy() { return preferencePolicy; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
 
@@ -80,5 +88,6 @@ public class CompetitionEntity {
     public void setDefaultDays(Set<CompetitionDay> defaultDays) { this.defaultDays = new HashSet<>(defaultDays); }
     public void setDefaultHours(Set<CompetitionHour> defaultHours) { this.defaultHours = new HashSet<>(defaultHours); }
     public void setDefaultFieldCount(int defaultFieldCount) { this.defaultFieldCount = defaultFieldCount; }
+    public void setPreferencePolicy(PreferencePolicy preferencePolicy) { this.preferencePolicy = preferencePolicy; }
     public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

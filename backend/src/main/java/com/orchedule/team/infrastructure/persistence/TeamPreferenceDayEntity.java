@@ -1,18 +1,14 @@
 package com.orchedule.team.infrastructure.persistence;
 
+import com.orchedule.team.domain.MatchDay;
 import com.orchedule.team.domain.PreferencePriority;
 import jakarta.persistence.*;
 
 import java.io.Serializable;
-import java.time.DayOfWeek;
 import java.util.Objects;
 import java.util.UUID;
 
-/**
- * Maps to team_preference_day: composite PK (team_preference_id, day).
- * Uses an embeddable composite key to mirror the real PRIMARY KEY exactly
- * instead of introducing a surrogate id column that doesn't exist in V4.
- */
+
 @Entity
 @Table(name = "team_preference_day")
 @IdClass(TeamPreferenceDayEntity.Key.class)
@@ -20,13 +16,16 @@ public class TeamPreferenceDayEntity {
 
     @Id
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "team_preference_id", nullable = false)
+    @JoinColumns({
+            @JoinColumn(name = "team_id", referencedColumnName = "team_id", nullable = false),
+            @JoinColumn(name = "competition_id", referencedColumnName = "competition_id", nullable = false)
+    })
     private TeamPreferenceEntity teamPreference;
 
     @Id
     @Enumerated(EnumType.STRING)
     @Column(name = "day", nullable = false, length = 20)
-    private DayOfWeek day;
+    private MatchDay day;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "priority", nullable = false, length = 20)
@@ -34,18 +33,18 @@ public class TeamPreferenceDayEntity {
 
     protected TeamPreferenceDayEntity() {}
 
-    public TeamPreferenceDayEntity(DayOfWeek day, PreferencePriority priority) {
+    public TeamPreferenceDayEntity(MatchDay day, PreferencePriority priority) {
         this.day = day;
         this.priority = priority;
     }
 
     public void setTeamPreference(TeamPreferenceEntity teamPreference) { this.teamPreference = teamPreference; }
-    public DayOfWeek getDay() { return day; }
+    public MatchDay getDay() { return day; }
     public PreferencePriority getPriority() { return priority; }
 
     public static class Key implements Serializable {
-        private UUID teamPreference;
-        private DayOfWeek day;
+        private TeamPreferenceEntity.Key teamPreference;
+        private MatchDay day;
 
         public Key() {}
 

@@ -5,10 +5,7 @@ import com.orchedule.team.api.dto.SaveTeamPreferenceRequest;
 import com.orchedule.team.api.dto.TeamPreferenceResponse;
 import com.orchedule.team.api.dto.TeamResponse;
 import com.orchedule.team.api.dto.UpdateTeamRequest;
-import com.orchedule.team.application.CreateTeamService;
-import com.orchedule.team.application.GetTeamService;
-import com.orchedule.team.application.SaveTeamPreferenceService;
-import com.orchedule.team.application.UpdateTeamService;
+import com.orchedule.team.application.*;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -67,7 +64,9 @@ public class TeamController {
     }
 
     @GetMapping("/{teamId}/preferences")
-    public ResponseEntity<TeamPreferenceResponse> getPreference(@PathVariable UUID teamId) {
-        return ResponseEntity.ok(getTeamPreferenceService.getByTeamId(teamId));
+    public ResponseEntity<TeamPreferenceResponse> getPreference(
+            @PathVariable UUID teamId,
+            @RequestParam UUID competitionId) {
+        return ResponseEntity.ok(getTeamPreferenceService.getByTeamIdAndCompetitionId(teamId, competitionId));
     }
 }

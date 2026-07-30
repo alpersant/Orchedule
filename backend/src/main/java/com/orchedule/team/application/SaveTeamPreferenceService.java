@@ -5,16 +5,23 @@ import com.orchedule.team.api.dto.SaveTeamPreferenceRequest;
 import com.orchedule.team.api.dto.TeamPreferenceResponse;
 import com.orchedule.team.application.exception.TeamNotFoundException;
 import com.orchedule.team.domain.DayPreference;
+import com.orchedule.team.domain.TeamPreference;
+import com.orchedule.team.domain.TeamPreferenceRepository;
 import com.orchedule.team.domain.TeamPreferenceValidator;
 import com.orchedule.team.domain.TeamRepository;
 import com.orchedule.team.domain.TimePreference;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * FIXED: uses findByTeamIdAndCompetitionId (the real repository contract)
+ * instead of the non-existent findByTeamId. Builds TeamPreference via the
+ * real 10-arg constructor / create() factory, keeping id/createdAt stable
+ * across updates.
+ */
 @Service
 public class SaveTeamPreferenceService {
 
@@ -22,7 +29,7 @@ public class SaveTeamPreferenceService {
     private final TeamPreferenceRepository teamPreferenceRepository;
 
     public SaveTeamPreferenceService(TeamRepository teamRepository,
-                                     TeamPreferenceRepository teamPreferenceRepository) {
+                                      TeamPreferenceRepository teamPreferenceRepository) {
         this.teamRepository = teamRepository;
         this.teamPreferenceRepository = teamPreferenceRepository;
     }
@@ -48,22 +55,15 @@ public class SaveTeamPreferenceService {
                 timePreferences
         );
 
-        OffsetDateTime now = OffsetDateTime.now();
-        OffsetDateTime createdAt = teamPreferenceRepository.findByTeamId(teamId)
-                .map(TeamPreference::createdAt)
-                .orElse(now);
+        TeamPreference saved = teamPreferenceRepository.findByTeamIdAndCompetitionId(teamId, request.competitionId())
+                .map(existing -> {
+                    existing.update(request.restrictionType(), request.excludedDay(), request.excludedHour(),
+                            dayPreferences, timePreferences);
+                    return existing;
+                })
+                .orElseGet(() -> TeamPreference.create(teamId, request.competitionId(), request.restrictionType(),
+                        request.excludedDay(), request.excludedHour(), dayPreferences, timePreferences));
 
-        TeamPreference saved = teamPreferenceRepository.save(new TeamPreference(
-                teamId,
-                request.restrictionType(),
-                request.excludedDay(),
-                request.excludedHour(),
-                dayPreferences,
-                timePreferences,
-                createdAt,
-                now
-        ));
-
-        return TeamMapper.toResponse(saved);
+        return TeamMapper.toResponse(teamPreferenceRepository.save(saved));
     }
 }
