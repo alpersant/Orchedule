@@ -19,7 +19,7 @@ public class GetFieldService {
 
     public Field getById(UUID id) {
         return fieldRepository.findById(id)
-                .orElseThrow(() -> new FieldNotFoundException("Field not found: " + id));
+                .orElseThrow(() -> new FieldNotFoundException(id));
     }
 
     public List<Field> getByVenue(UUID venueId) {

@@ -18,7 +18,7 @@ public class ActivateFieldService {
 
     public Field activate(UUID id) {
         Field field = fieldRepository.findById(id)
-                .orElseThrow(() -> new FieldNotFoundException("Field not found: " + id));
+                .orElseThrow(() -> new FieldNotFoundException(id));
         field.activate();
         return fieldRepository.save(field);
     }

@@ -18,7 +18,7 @@ public class DeactivateFieldService {
 
     public Field deactivate(UUID id) {
         Field field = fieldRepository.findById(id)
-                .orElseThrow(() -> new FieldNotFoundException("Field not found: " + id));
+                .orElseThrow(() -> new FieldNotFoundException(id));
         field.deactivate();
         return fieldRepository.save(field);
     }

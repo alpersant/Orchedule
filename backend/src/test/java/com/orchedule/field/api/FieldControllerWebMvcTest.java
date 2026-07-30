@@ -78,7 +78,7 @@ class FieldControllerWebMvcTest {
     @Test
     void shouldReturn404WhenFieldNotFound() throws Exception {
         UUID id = UUID.randomUUID();
-        when(getFieldService.getById(id)).thenThrow(new FieldNotFoundException("Field not found: " + id));
+        when(getFieldService.getById(id)).thenThrow(new FieldNotFoundException(id));
 
         mockMvc.perform(get("/api/fields/{id}", id))
                 .andExpect(status().isNotFound());

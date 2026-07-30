@@ -20,7 +20,7 @@ public class UpdateFieldService {
     public Field rename(UUID id, String newName) {
         FieldValidator.validateName(newName);
         Field field = fieldRepository.findById(id)
-                .orElseThrow(() -> new FieldNotFoundException("Field not found: " + id));
+                .orElseThrow(() -> new FieldNotFoundException(id));
         field.rename(newName);
         return fieldRepository.save(field);
     }
