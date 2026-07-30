@@ -5,7 +5,6 @@ import com.orchedule.team.domain.MatchDay;
 import com.orchedule.team.domain.MatchHour;
 import com.orchedule.team.domain.PreferencePriority;
 import com.orchedule.team.domain.RestrictionType;
-import com.orchedule.team.domain.TeamPreference;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;

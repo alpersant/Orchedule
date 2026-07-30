@@ -11,7 +11,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Entity
-@Table(name = "competitions")
+@Table(name = "competition")
 public class CompetitionEntity {
 
     @Id

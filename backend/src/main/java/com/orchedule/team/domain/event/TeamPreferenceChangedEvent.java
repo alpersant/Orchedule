@@ -10,9 +10,9 @@ import java.util.UUID;
  * synchronously from team's write path — this keeps team's services free
  * of any knowledge that scheduling exists.
  */
-public record TeamPreferencesChangedEvent(UUID teamId, UUID seasonId, OffsetDateTime occurredAt) {
+public record TeamPreferenceChangedEvent(UUID teamId, UUID seasonId, OffsetDateTime occurredAt) {
 
-    public static TeamPreferencesChangedEvent of(UUID teamId, UUID seasonId) {
-        return new TeamPreferencesChangedEvent(teamId, seasonId, OffsetDateTime.now());
+    public static TeamPreferenceChangedEvent of(UUID teamId, UUID seasonId) {
+        return new TeamPreferenceChangedEvent(teamId, seasonId, OffsetDateTime.now());
     }
 }

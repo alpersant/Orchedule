@@ -1,6 +1,5 @@
 package com.orchedule.team.domain;
 
-import com.orchedule.team.application.exception.InvalidTeamPreferenceException;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

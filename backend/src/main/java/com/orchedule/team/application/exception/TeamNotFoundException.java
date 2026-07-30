@@ -1,7 +1,13 @@
 package com.orchedule.team.application.exception;
 
-public class TeamNotFoundException extends RuntimeException {
+import com.orchedule.shared.exception.NotFoundException;
+
+/**
+ * Matches the real constructor contract used by TeamRepositoryAdapter:
+ * TeamNotFoundException(String message) — not a UUID-only overload.
+ */
+public class TeamNotFoundException extends NotFoundException {
     public TeamNotFoundException(String message) {
-        super(message);
+        super("TEAM_NOT_FOUND", message);
     }
 }

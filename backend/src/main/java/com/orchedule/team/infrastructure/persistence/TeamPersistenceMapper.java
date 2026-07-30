@@ -2,7 +2,6 @@ package com.orchedule.team.infrastructure.persistence;
 
 import com.orchedule.team.domain.DayPreference;
 import com.orchedule.team.domain.Team;
-import com.orchedule.team.domain.TeamPreference;
 import com.orchedule.team.domain.TimePreference;
 
 import java.time.OffsetDateTime;

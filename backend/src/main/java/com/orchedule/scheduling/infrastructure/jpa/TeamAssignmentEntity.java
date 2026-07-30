@@ -7,7 +7,7 @@ import java.time.LocalTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "schedule_team_assignments")
+@Table(name = "schedule_team_assignment")
 public class TeamAssignmentEntity {
 
     @Id

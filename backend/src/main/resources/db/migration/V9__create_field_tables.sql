@@ -1,8 +1,8 @@
 -- Field module: physical fields per venue and their weekly availability
 
-CREATE TABLE fields (
+CREATE TABLE field (
     id UUID PRIMARY KEY,
-    venue_id UUID NOT NULL REFERENCES venues(id),
+    venue_id UUID NOT NULL REFERENCES venue(id),
     name VARCHAR(100) NOT NULL,
     status VARCHAR(20) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
@@ -10,14 +10,14 @@ CREATE TABLE fields (
     CONSTRAINT uq_field_venue_name UNIQUE (venue_id, name)
 );
 
-CREATE INDEX idx_fields_venue_id ON fields (venue_id);
-CREATE INDEX idx_fields_status ON fields (status);
+CREATE INDEX idx_field_venue_id ON field (venue_id);
+CREATE INDEX idx_field_status ON field (status);
 
 CREATE TABLE field_weekly_availability (
     id UUID PRIMARY KEY,
-    season_id UUID NOT NULL REFERENCES seasons(id),
+    season_id UUID NOT NULL REFERENCES season(id),
     week_number INT NOT NULL,
-    field_id UUID NOT NULL REFERENCES fields(id),
+    field_id UUID NOT NULL REFERENCES field(id),
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
     CONSTRAINT uq_field_weekly_availability UNIQUE (season_id, week_number, field_id)
 );

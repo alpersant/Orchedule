@@ -1,13 +1,16 @@
 package com.orchedule.team.infrastructure.persistence;
 
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface SpringDataTeamPreferenceRepository extends JpaRepository<TeamPreferenceJpaEntity, UUID> {
+public interface SpringDataTeamPreferenceRepository extends JpaRepository<TeamPreferenceEntity, UUID> {
 
-    @EntityGraph(attributePaths = {"dayPreferences", "hourPreferences"})
-    Optional<TeamPreferenceJpaEntity> findByTeamId(UUID teamId);
+    Optional<TeamPreferenceEntity> findByTeamIdAndCompetitionId(UUID teamId, UUID competitionId);
+
+    List<TeamPreferenceEntity> findByCompetitionId(UUID competitionId);
+
+    boolean existsByTeamIdAndCompetitionId(UUID teamId, UUID competitionId);
 }

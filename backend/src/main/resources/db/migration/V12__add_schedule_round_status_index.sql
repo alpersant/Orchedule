@@ -6,4 +6,4 @@
 -- small scale, but this composite index keeps it efficient as seasons
 -- and round counts grow.
 
-CREATE INDEX idx_schedule_rounds_season_status ON schedule_rounds (season_id, status);
+CREATE INDEX idx_schedule_round_season_status ON schedule_rounds (season_id, status);

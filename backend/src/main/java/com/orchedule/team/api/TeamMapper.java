@@ -5,7 +5,6 @@ import com.orchedule.team.api.dto.TeamPreferenceResponse;
 import com.orchedule.team.api.dto.TeamResponse;
 import com.orchedule.team.api.dto.TimePreferenceDto;
 import com.orchedule.team.domain.Team;
-import com.orchedule.team.domain.TeamPreference;
 
 public final class TeamMapper {
 

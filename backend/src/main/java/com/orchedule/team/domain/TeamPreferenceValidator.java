@@ -1,7 +1,5 @@
 package com.orchedule.team.domain;
 
-import com.orchedule.team.application.exception.InvalidTeamPreferenceException;
-
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;

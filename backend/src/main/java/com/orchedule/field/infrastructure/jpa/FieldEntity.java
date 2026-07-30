@@ -7,7 +7,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "fields")
+@Table(name = "field")
 public class FieldEntity {
 
     @Id

@@ -1,7 +1,9 @@
 package com.orchedule.team.application.exception;
 
-public class InvalidTeamPreferenceException extends RuntimeException {
+import com.orchedule.shared.exception.ValidationException;
+
+public class InvalidTeamPreferenceException extends ValidationException {
     public InvalidTeamPreferenceException(String message) {
-        super(message);
+        super("INVALID_TEAM_PREFERENCE", message);
     }
 }

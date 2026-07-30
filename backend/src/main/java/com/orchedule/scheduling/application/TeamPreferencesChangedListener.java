@@ -3,7 +3,7 @@ package com.orchedule.scheduling.application;
 import com.orchedule.scheduling.domain.ScheduleRound;
 import com.orchedule.scheduling.domain.ScheduleRoundRepository;
 import com.orchedule.scheduling.domain.ScheduleRoundStatus;
-import com.orchedule.team.domain.event.TeamPreferencesChangedEvent;
+import com.orchedule.team.domain.event.TeamPreferenceChangedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.modulith.events.ApplicationModuleListener;
@@ -39,7 +39,7 @@ public class TeamPreferencesChangedListener {
     }
 
     @ApplicationModuleListener
-    public void onTeamPreferencesChanged(TeamPreferencesChangedEvent event) {
+    public void onTeamPreferencesChanged(TeamPreferenceChangedEvent event) {
         List<ScheduleRound> draftRounds =
                 scheduleRoundRepository.findBySeasonIdAndStatus(event.seasonId(), ScheduleRoundStatus.DRAFT);
 

@@ -5,8 +5,6 @@ import com.orchedule.team.api.dto.SaveTeamPreferenceRequest;
 import com.orchedule.team.api.dto.TeamPreferenceResponse;
 import com.orchedule.team.application.exception.TeamNotFoundException;
 import com.orchedule.team.domain.DayPreference;
-import com.orchedule.team.domain.TeamPreference;
-import com.orchedule.team.domain.TeamPreferenceRepository;
 import com.orchedule.team.domain.TeamPreferenceValidator;
 import com.orchedule.team.domain.TeamRepository;
 import com.orchedule.team.domain.TimePreference;

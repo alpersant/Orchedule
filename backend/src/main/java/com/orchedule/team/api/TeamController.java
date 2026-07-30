@@ -6,7 +6,6 @@ import com.orchedule.team.api.dto.TeamPreferenceResponse;
 import com.orchedule.team.api.dto.TeamResponse;
 import com.orchedule.team.api.dto.UpdateTeamRequest;
 import com.orchedule.team.application.CreateTeamService;
-import com.orchedule.team.application.GetTeamPreferenceService;
 import com.orchedule.team.application.GetTeamService;
 import com.orchedule.team.application.SaveTeamPreferenceService;
 import com.orchedule.team.application.UpdateTeamService;

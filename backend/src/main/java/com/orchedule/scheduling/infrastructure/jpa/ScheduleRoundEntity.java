@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "schedule_rounds",
+@Table(name = "schedule_round",
        uniqueConstraints = @UniqueConstraint(columnNames = {"season_id", "week_number"}))
 public class ScheduleRoundEntity {
 
