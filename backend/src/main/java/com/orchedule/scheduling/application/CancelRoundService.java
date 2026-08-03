@@ -9,14 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
-/**
- * Same fix as ConfirmRoundService: cancellation now requires ADMIN/ORGANIZER.
- * Note the internal, event-driven cancellation performed by
- * TeamPreferencesChangedListener does NOT go through this service — it
- * calls ScheduleRound.cancel() + repository.save() directly, since that
- * path is a trusted system reaction, not an end-user request, and must not
- * be blocked by a caller-role check that has no HTTP principal to evaluate.
- */
 @Service
 public class CancelRoundService {
 

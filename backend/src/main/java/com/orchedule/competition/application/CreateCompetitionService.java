@@ -4,6 +4,7 @@ import com.orchedule.competition.application.exception.CompetitionAlreadyExistsE
 import com.orchedule.competition.domain.Competition;
 import com.orchedule.competition.domain.CompetitionRepository;
 import com.orchedule.competition.domain.CompetitionValidator;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +18,7 @@ public class CreateCompetitionService {
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORGANIZER')")
     public Competition create(String name, String description) {
         CompetitionValidator.validateName(name);
         CompetitionValidator.validateDescription(description);

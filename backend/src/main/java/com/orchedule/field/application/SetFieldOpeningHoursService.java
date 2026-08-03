@@ -3,6 +3,7 @@ package com.orchedule.field.application;
 import com.orchedule.field.application.exception.FieldNotFoundException;
 import com.orchedule.field.domain.Field;
 import com.orchedule.field.domain.FieldRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,7 @@ public class SetFieldOpeningHoursService {
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORGANIZER')")
     public Field setOpeningHours(UUID fieldId, Set<DayOfWeek> openDays, Set<LocalTime> openHours) {
         Field field = fieldRepository.findById(fieldId)
                 .orElseThrow(() -> new FieldNotFoundException(fieldId));

@@ -5,6 +5,7 @@ import com.orchedule.availability.api.dto.UpdateAvailabilityRequest;
 import com.orchedule.availability.application.exception.AvailabilityNotFoundException;
 import com.orchedule.availability.application.exception.InvalidAvailabilityException;
 import com.orchedule.availability.domain.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ public class UpdateAvailabilityService {
     public UpdateAvailabilityService(AvailabilityRepository repo) { this.repo = repo; }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORGANIZER')")
     public AvailabilityResponse update(UUID id, UpdateAvailabilityRequest request) {
         Availability current = repo.findById(id).orElseThrow(() -> new AvailabilityNotFoundException(id));
         AvailabilityScope scope = AvailabilityScope.valueOf(request.scope().trim().toUpperCase());

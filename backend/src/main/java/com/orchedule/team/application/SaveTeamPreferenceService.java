@@ -10,18 +10,13 @@ import com.orchedule.team.domain.TeamPreferenceRepository;
 import com.orchedule.team.domain.TeamPreferenceValidator;
 import com.orchedule.team.domain.TeamRepository;
 import com.orchedule.team.domain.TimePreference;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
 
-/**
- * FIXED: uses findByTeamIdAndCompetitionId (the real repository contract)
- * instead of the non-existent findByTeamId. Builds TeamPreference via the
- * real 10-arg constructor / create() factory, keeping id/createdAt stable
- * across updates.
- */
 @Service
 public class SaveTeamPreferenceService {
 
@@ -35,6 +30,7 @@ public class SaveTeamPreferenceService {
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORGANIZER')")
     public TeamPreferenceResponse save(UUID teamId, SaveTeamPreferenceRequest request) {
         teamRepository.findById(teamId)
                 .orElseThrow(() -> new TeamNotFoundException("Team not found: " + teamId));

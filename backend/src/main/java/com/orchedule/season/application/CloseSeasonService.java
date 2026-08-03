@@ -6,6 +6,7 @@ import com.orchedule.season.application.exception.SeasonNotFoundException;
 import com.orchedule.season.domain.Season;
 import com.orchedule.season.domain.SeasonRepository;
 import com.orchedule.season.domain.SeasonStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,7 @@ public class CloseSeasonService {
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORGANIZER')")
     public SeasonResponse close(UUID seasonId) {
         Season season = seasonRepository.findById(seasonId)
                 .orElseThrow(() -> new SeasonNotFoundException(seasonId));

@@ -7,6 +7,7 @@ import com.orchedule.season.domain.Season;
 import com.orchedule.season.domain.SeasonRepository;
 import com.orchedule.season.domain.SeasonStatus;
 import com.orchedule.season.domain.SeasonValidator;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,7 @@ public class CreateSeasonService {
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORGANIZER')")
     public SeasonResponse create(CreateSeasonRequest request) {
         SeasonValidator.validate(
                 request.name(),

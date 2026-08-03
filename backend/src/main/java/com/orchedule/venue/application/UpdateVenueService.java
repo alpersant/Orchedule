@@ -7,6 +7,7 @@ import com.orchedule.venue.application.exception.VenueNotFoundException;
 import com.orchedule.venue.domain.Venue;
 import com.orchedule.venue.domain.VenueRepository;
 import com.orchedule.venue.domain.VenueValidator;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ public class UpdateVenueService {
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORGANIZER')")
     public VenueResponse update(UUID venueId, UpdateVenueRequest request) {
         Venue currentVenue = venueRepository.findById(venueId)
                 .orElseThrow(() -> new VenueNotFoundException(venueId));

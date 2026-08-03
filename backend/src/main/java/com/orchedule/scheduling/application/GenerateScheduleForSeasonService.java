@@ -11,16 +11,7 @@ import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.*;
 
-/**
- * Orchestrates generation of a single round (jornada), delegating the
- * actual assignment logic to the pure {@link RotationEngine}.
- *
- * This service has ZERO dependency on team/field/competition modules —
- * all cross-module data arrives pre-assembled via {@link GenerateRoundCommand}
- * (built by {@link ScheduleInputAssembler} through ACL ports). This keeps
- * the Spring Modulith module boundary clean and this class trivially
- * unit-testable.
- */
+
 @Service
 public class GenerateScheduleForSeasonService {
 

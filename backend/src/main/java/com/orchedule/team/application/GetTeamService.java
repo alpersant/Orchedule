@@ -4,6 +4,7 @@ import com.orchedule.team.api.TeamMapper;
 import com.orchedule.team.api.dto.TeamResponse;
 import com.orchedule.team.application.exception.TeamNotFoundException;
 import com.orchedule.team.domain.TeamRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,7 @@ public class GetTeamService {
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("isAuthenticated()")
     public TeamResponse getById(UUID teamId) {
         return teamRepository.findById(teamId)
                 .map(TeamMapper::toResponse)
@@ -27,6 +29,7 @@ public class GetTeamService {
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("isAuthenticated()")
     public List<TeamResponse> getAll() {
         return teamRepository.findAll().stream()
                 .map(TeamMapper::toResponse)

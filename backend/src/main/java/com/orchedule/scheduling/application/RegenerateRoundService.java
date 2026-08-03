@@ -11,11 +11,7 @@ import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.*;
 
-/**
- * Recomputes the assignments of an existing DRAFT round. Same
- * authorization boundary as generation/confirmation — this was previously
- * unguarded as well.
- */
+
 @Service
 public class RegenerateRoundService {
 

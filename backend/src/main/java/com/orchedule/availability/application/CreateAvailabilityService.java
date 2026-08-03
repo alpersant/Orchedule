@@ -4,6 +4,7 @@ import com.orchedule.availability.api.dto.AvailabilityResponse;
 import com.orchedule.availability.api.dto.CreateAvailabilityRequest;
 import com.orchedule.availability.application.exception.InvalidAvailabilityException;
 import com.orchedule.availability.domain.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +14,7 @@ public class CreateAvailabilityService {
     public CreateAvailabilityService(AvailabilityRepository repo) { this.repo = repo; }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORGANIZER')")
     public AvailabilityResponse create(CreateAvailabilityRequest request) {
         AvailabilityScope scope = AvailabilityScope.valueOf(request.scope().trim().toUpperCase());
         AvailabilityStatus status = AvailabilityStatus.valueOf(request.status().trim().toUpperCase());

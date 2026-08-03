@@ -4,6 +4,7 @@ import com.orchedule.season.api.dto.SeasonResponse;
 import com.orchedule.season.application.exception.SeasonNotFoundException;
 import com.orchedule.season.domain.Season;
 import com.orchedule.season.domain.SeasonRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,7 @@ public class GetSeasonService {
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("isAuthenticated()")
     public SeasonResponse getById(UUID seasonId) {
         Season season = seasonRepository.findById(seasonId)
                 .orElseThrow(() -> new SeasonNotFoundException(seasonId));
@@ -28,6 +30,7 @@ public class GetSeasonService {
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("isAuthenticated()")
     public List<SeasonResponse> getAll() {
         return seasonRepository.findAll()
                 .stream()

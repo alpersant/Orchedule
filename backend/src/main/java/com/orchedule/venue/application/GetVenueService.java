@@ -4,6 +4,7 @@ import com.orchedule.venue.api.dto.VenueResponse;
 import com.orchedule.venue.application.exception.VenueNotFoundException;
 import com.orchedule.venue.domain.Venue;
 import com.orchedule.venue.domain.VenueRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,7 @@ public class GetVenueService {
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("isAuthenticated()")
     public VenueResponse getById(UUID venueId) {
         Venue venue = venueRepository.findById(venueId)
                 .orElseThrow(() -> new VenueNotFoundException(venueId));
@@ -28,6 +30,7 @@ public class GetVenueService {
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("isAuthenticated()")
     public List<VenueResponse> getAll() {
         return venueRepository.findAll()
                 .stream()

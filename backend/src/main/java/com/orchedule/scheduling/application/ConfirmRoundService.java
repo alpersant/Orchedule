@@ -10,14 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
-/**
- * Confirming a round publishes it as the official calendar for that week —
- * same authorization boundary as generation. Previously this service had
- * NO authorization check at all, meaning any authenticated caller (or an
- * unauthenticated one, depending on filter chain config) could confirm or
- * lock in a round. Fixed by requiring ADMIN/ORGANIZER, consistent with
- * GenerateScheduleForSeasonService.
- */
+
 @Service
 public class ConfirmRoundService {
 

@@ -6,6 +6,7 @@ import com.orchedule.team.api.dto.CreateTeamRequest;
 import com.orchedule.team.api.dto.TeamResponse;
 import com.orchedule.team.domain.Team;
 import com.orchedule.team.domain.TeamRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,7 @@ public class CreateTeamService {
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORGANIZER')")
     public TeamResponse create(CreateTeamRequest request) {
         String normalizedName = request.name().trim();
 

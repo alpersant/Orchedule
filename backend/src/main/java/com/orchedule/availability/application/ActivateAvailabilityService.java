@@ -5,6 +5,7 @@ import com.orchedule.availability.application.exception.AvailabilityNotFoundExce
 import com.orchedule.availability.application.exception.InvalidAvailabilityException;
 import com.orchedule.availability.domain.Availability;
 import com.orchedule.availability.domain.AvailabilityRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ public class ActivateAvailabilityService {
     public ActivateAvailabilityService(AvailabilityRepository repo) { this.repo = repo; }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORGANIZER')")
     public AvailabilityResponse activate(UUID id) {
         Availability current = repo.findById(id).orElseThrow(() -> new AvailabilityNotFoundException(id));
         if (current.active()) throw new InvalidAvailabilityException("Availability is already active");

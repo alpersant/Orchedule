@@ -4,6 +4,7 @@ import com.orchedule.competition.application.exception.CompetitionNotFoundExcept
 import com.orchedule.competition.domain.Competition;
 import com.orchedule.competition.domain.CompetitionRepository;
 import com.orchedule.competition.domain.CompetitionStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,15 +21,18 @@ public class GetCompetitionService {
         this.competitionRepository = competitionRepository;
     }
 
+    @PreAuthorize("isAuthenticated()")
     public Competition getById(UUID id) {
         return competitionRepository.findById(id)
                 .orElseThrow(() -> new CompetitionNotFoundException(id));
     }
 
+    @PreAuthorize("isAuthenticated()")
     public List<Competition> getAll() {
         return competitionRepository.findAll();
     }
 
+    @PreAuthorize("isAuthenticated()")
     public List<Competition> getByStatus(CompetitionStatus status) {
         return competitionRepository.findByStatus(status);
     }

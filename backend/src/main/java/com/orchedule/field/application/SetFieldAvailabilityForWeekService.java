@@ -3,16 +3,14 @@ package com.orchedule.field.application;
 import com.orchedule.field.domain.FieldValidator;
 import com.orchedule.field.domain.FieldWeeklyAvailability;
 import com.orchedule.field.domain.FieldWeeklyAvailabilityRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Allows enabling/disabling how many and which fields are available for a
- * given week of a season. Supports the requirement: "alguna semana solo se
- * jugará en uno, otras en dos, otras en tres".
- */
+
 @Service
 public class SetFieldAvailabilityForWeekService {
 
@@ -22,6 +20,8 @@ public class SetFieldAvailabilityForWeekService {
         this.availabilityRepository = availabilityRepository;
     }
 
+    @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORGANIZER')")
     public List<FieldWeeklyAvailability> setForWeek(UUID seasonId, int weekNumber, List<UUID> enabledFieldIds) {
         FieldValidator.validateWeekNumber(weekNumber);
 
