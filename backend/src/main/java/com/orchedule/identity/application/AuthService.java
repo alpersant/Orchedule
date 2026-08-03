@@ -12,10 +12,12 @@ import com.orchedule.identity.domain.Role;
 import com.orchedule.identity.domain.TokenService;
 import com.orchedule.identity.domain.UserRepository;
 import com.orchedule.identity.infrastructure.security.PasswordService;
+import com.orchedule.identity.infrastructure.security.RefreshTokenHashService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -24,6 +26,7 @@ public class AuthService {
     private final UserAuthQuery userAuthQuery;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordService passwordService;
+    private final RefreshTokenHashService refreshTokenHashService;
     private final TokenService tokenService;
     private final UserRepository userRepository;
 
@@ -31,12 +34,14 @@ public class AuthService {
             UserAuthQuery userAuthQuery,
             RefreshTokenRepository refreshTokenRepository,
             PasswordService passwordService,
+            RefreshTokenHashService refreshTokenHashService,
             TokenService tokenService,
             UserRepository userRepository
     ) {
         this.userAuthQuery = userAuthQuery;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordService = passwordService;
+        this.refreshTokenHashService = refreshTokenHashService;
         this.tokenService = tokenService;
         this.userRepository = userRepository;
     }
@@ -79,7 +84,7 @@ public class AuthService {
 
     @Transactional
     public AuthResponse refresh(String refreshToken) {
-        if (!tokenService.isValid(refreshToken)) {
+        if (!tokenService.isValid(refreshToken) || !tokenService.isRefreshToken(refreshToken)) {
             throw new IllegalArgumentException("Invalid credentials");
         }
 
@@ -88,7 +93,7 @@ public class AuthService {
         UserAuthView user = userAuthQuery.findActiveById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
 
-        String refreshTokenHash = passwordService.hash(refreshToken);
+        String refreshTokenHash = refreshTokenHashService.hash(refreshToken);
 
         refreshTokenRepository.findByTokenHash(refreshTokenHash)
                 .filter(RefreshToken::isValid)
@@ -101,28 +106,29 @@ public class AuthService {
 
     @Transactional
     public void logout(String refreshToken) {
-        if (!tokenService.isValid(refreshToken)) {
+        if (!tokenService.isValid(refreshToken) || !tokenService.isRefreshToken(refreshToken)) {
             return;
         }
 
-        String hash = passwordService.hash(refreshToken);
+        String hash = refreshTokenHashService.hash(refreshToken);
         refreshTokenRepository.findByTokenHash(hash)
                 .ifPresent(token -> refreshTokenRepository.revokeAllByUserId(token.getUserId()));
     }
 
     private AuthResponse issueTokens(UserAuthView user) {
-        TokenUser tokenUser = new TokenUser(user.id(), user.email(), user.role());
+        Role role = toRole(user.role());
+        TokenUser tokenUser = new TokenUser(user.id(), user.email(), role);
 
         String accessToken = tokenService.generateAccessToken(tokenUser);
         String refreshToken = tokenService.generateRefreshToken(tokenUser);
 
         OffsetDateTime now = OffsetDateTime.now();
-        OffsetDateTime expiresAt = now.plusDays(30);
+        OffsetDateTime expiresAt = now.plusSeconds(tokenService.getRefreshTokenExpirationSeconds());
 
         refreshTokenRepository.save(new RefreshToken(
                 null,
                 user.id(),
-                passwordService.hash(refreshToken),
+                refreshTokenHashService.hash(refreshToken),
                 expiresAt,
                 false,
                 now,
@@ -134,7 +140,7 @@ public class AuthService {
                 refreshToken,
                 user.email(),
                 user.fullName(),
-                user.role()
+                role.name()
         );
     }
 
@@ -142,5 +148,17 @@ public class AuthService {
         return email == null ? null : email.trim().toLowerCase();
     }
 
-    public record TokenUser(UUID id, String email, String role) {}
+    private Role toRole(String role) {
+        if (role == null || role.isBlank()) {
+            throw new IllegalStateException("User role is missing");
+        }
+
+        try {
+            return Role.valueOf(role.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalStateException("Unsupported user role: " + role, ex);
+        }
+    }
+
+    public record TokenUser(UUID id, String email, Role role) {}
 }

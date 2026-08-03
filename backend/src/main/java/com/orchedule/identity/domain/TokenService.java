@@ -1,31 +1,18 @@
 package com.orchedule.identity.domain;
 
 import com.orchedule.identity.application.AuthService.TokenUser;
-import com.orchedule.identity.infrastructure.security.JwtTokenService;
-import org.springframework.stereotype.Service;
 
-@Service
-public class TokenService {
+public interface TokenService {
 
-    private final JwtTokenService jwtTokenService;
+    String generateAccessToken(TokenUser user);
 
-    public TokenService(JwtTokenService jwtTokenService) {
-        this.jwtTokenService = jwtTokenService;
-    }
+    String generateRefreshToken(TokenUser user);
 
-    public String generateAccessToken(TokenUser user) {
-        return jwtTokenService.generateAccessToken(user);
-    }
+    boolean isValid(String token);
 
-    public String generateRefreshToken(TokenUser user) {
-        return jwtTokenService.generateRefreshToken(user);
-    }
+    String getSubject(String token);
 
-    public boolean isValid(String token) {
-        return jwtTokenService.isValid(token);
-    }
+    boolean isRefreshToken(String token);
 
-    public String getSubject(String token) {
-        return jwtTokenService.getSubject(token);
-    }
+    long getRefreshTokenExpirationSeconds();
 }

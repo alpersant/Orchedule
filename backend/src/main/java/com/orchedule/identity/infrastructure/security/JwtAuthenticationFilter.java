@@ -1,7 +1,7 @@
 package com.orchedule.identity.infrastructure.security;
 
-import com.orchedule.identity.domain.TokenService;
 import com.orchedule.identity.api.UserAuthQuery;
+import com.orchedule.identity.domain.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -36,9 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletRequest request,
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
-    )
-            throws ServletException, IOException
-    {
+    ) throws ServletException, IOException {
         String header = request.getHeader(AUTHORIZATION_HEADER);
 
         if (header == null || !header.startsWith(BEARER_PREFIX)) {
@@ -48,7 +46,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = header.substring(BEARER_PREFIX.length());
 
-        if (tokenService.isValid(token)) {
+        if (!tokenService.isValid(token) || tokenService.isRefreshToken(token)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        try {
             UUID userId = UUID.fromString(tokenService.getSubject(token));
 
             userAuthQuery.findActiveById(userId).ifPresent(user -> {
@@ -59,6 +62,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 );
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             });
+        } catch (IllegalArgumentException ex) {
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);
