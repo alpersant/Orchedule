@@ -5,6 +5,7 @@ import com.orchedule.scheduling.application.port.FieldSchedulingContext;
 import com.orchedule.scheduling.application.port.SeasonContextPort;
 import com.orchedule.scheduling.application.port.TeamPreferencesPort;
 import com.orchedule.scheduling.domain.TeamScheduleProfile;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -23,9 +24,11 @@ public class ScheduleInputAssembler {
     private final FieldAvailabilityPort fieldAvailabilityPort;
     private final SeasonContextPort seasonContextPort;
 
-    public ScheduleInputAssembler(TeamPreferencesPort teamPreferencesPort,
-                                   FieldAvailabilityPort fieldAvailabilityPort,
-                                   SeasonContextPort seasonContextPort) {
+    public ScheduleInputAssembler(
+            @Qualifier("schedulingTeamPreferencesAdapter") TeamPreferencesPort teamPreferencesPort,
+            FieldAvailabilityPort fieldAvailabilityPort,
+            SeasonContextPort seasonContextPort
+    ) {
         this.teamPreferencesPort = teamPreferencesPort;
         this.fieldAvailabilityPort = fieldAvailabilityPort;
         this.seasonContextPort = seasonContextPort;

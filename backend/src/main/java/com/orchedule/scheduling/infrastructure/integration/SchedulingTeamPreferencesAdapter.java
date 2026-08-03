@@ -22,13 +22,13 @@ import java.util.List;
 import java.util.UUID;
 
 @Component
-public class TeamPreferencesAdapter implements TeamPreferencesPort {
+public class SchedulingTeamPreferencesAdapter implements TeamPreferencesPort {
 
     private final GetAllTeamPreferencesService getAllTeamPreferencesService;
     private final SeasonContextPort seasonContextPort;
 
-    public TeamPreferencesAdapter(GetAllTeamPreferencesService getAllTeamPreferencesService,
-                                   SeasonContextPort seasonContextPort) {
+    public SchedulingTeamPreferencesAdapter(GetAllTeamPreferencesService getAllTeamPreferencesService,
+                                            SeasonContextPort seasonContextPort) {
         this.getAllTeamPreferencesService = getAllTeamPreferencesService;
         this.seasonContextPort = seasonContextPort;
     }

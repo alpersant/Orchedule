@@ -1,2 +1,0 @@
-ALTER TABLE competition
-    ADD COLUMN preference_policy VARCHAR(20) NOT NULL DEFAULT 'FLEXIBLE';
