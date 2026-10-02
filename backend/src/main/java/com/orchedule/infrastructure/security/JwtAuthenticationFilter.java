@@ -1,4 +1,4 @@
-package com.orchedule.identity.infrastructure.security;
+package com.orchedule.infrastructure.security;
 
 import com.orchedule.identity.api.UserAuthQuery;
 import com.orchedule.identity.domain.TokenService;

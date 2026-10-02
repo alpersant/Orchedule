@@ -1,4 +1,4 @@
-package com.orchedule.identity.infrastructure.security;
+package com.orchedule.infrastructure.security;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

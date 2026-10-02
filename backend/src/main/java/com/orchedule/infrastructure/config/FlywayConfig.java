@@ -1,4 +1,4 @@
-package com.orchedule.shared.infrastructure.config;
+package com.orchedule.infrastructure.config;
 
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;

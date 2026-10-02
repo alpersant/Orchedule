@@ -11,8 +11,8 @@ import com.orchedule.identity.domain.RegisterUserCommand;
 import com.orchedule.identity.domain.Role;
 import com.orchedule.identity.domain.TokenService;
 import com.orchedule.identity.domain.UserRepository;
-import com.orchedule.identity.infrastructure.security.PasswordService;
-import com.orchedule.identity.infrastructure.security.RefreshTokenHashService;
+import com.orchedule.infrastructure.security.PasswordService;
+import com.orchedule.infrastructure.security.RefreshTokenHashService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

@@ -1,5 +1,7 @@
-package com.orchedule.identity.infrastructure.security;
+package com.orchedule.infrastructure.config;
 
+import com.orchedule.infrastructure.security.JwtAuthenticationFilter;
+import com.orchedule.infrastructure.security.JwtProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
