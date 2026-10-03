@@ -177,14 +177,14 @@ The current work is focused on:
 - [x] Define the main scheduling problem.
 - [x] Draft the initial README.
 - [x] Consolidate product documents.
-- [ ] Define MVP scope in final form.
-- [ ] Define business rules in final form.
+- [x] Define MVP scope in final form.
+- [x] Define business rules in final form.
 
 ### Phase 2: Architecture
-- [ ] Design domain model.
-- [ ] Define API contracts.
-- [ ] Prepare backend structure.
-- [ ] Prepare frontend structure.
+- [x] Design domain model.
+- [x] Define API contracts.
+- [x] Prepare backend structure.
+- [x] Prepare frontend structure.
 
 ### Phase 3: Implementation
 - [ ] Build scheduling engine.
