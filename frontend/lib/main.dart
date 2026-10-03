@@ -1,18 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'core/network/dio_client.dart';
 import 'core/router/app_router.dart';
-import 'features/auth/data/auth_api.dart';
-import 'features/auth/domain/auth_state.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
   runApp(
-    ProviderScope(
-      overrides: [
-        authApiProvider.overrideWith((ref) => AuthApi(ref.watch(rawDioProvider))),
-      ],
-      child: const OrcheduleApp(),
+    const ProviderScope(
+      child: OrcheduleApp(),
     ),
   );
 }
@@ -22,13 +18,15 @@ class OrcheduleApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final router = ref.watch(goRouterProvider);
+    final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
       title: 'Orchedule',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorSchemeSeed: Colors.indigo,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.indigo,
+        ),
         useMaterial3: true,
       ),
       routerConfig: router,

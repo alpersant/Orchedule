@@ -1,68 +1,50 @@
 import 'package:dio/dio.dart';
 
-class AuthResponse {
+class AuthTokens {
   final String accessToken;
   final String refreshToken;
-  final String email;
-  final String fullName;
-  final String role;
 
-  AuthResponse({
+  const AuthTokens({
     required this.accessToken,
     required this.refreshToken,
-    required this.email,
-    required this.fullName,
-    required this.role,
   });
 
-  factory AuthResponse.fromJson(Map<String, dynamic> json) {
-    return AuthResponse(
+  factory AuthTokens.fromJson(Map<String, dynamic> json) {
+    return AuthTokens(
       accessToken: json['accessToken'] as String,
       refreshToken: json['refreshToken'] as String,
-      email: json['email'] as String,
-      fullName: json['fullName'] as String,
-      role: json['role'] as String,
     );
   }
 }
 
 class AuthApi {
-  final Dio _rawDio;
+  final Dio _dio;
 
-  AuthApi(this._rawDio);
+  AuthApi(this._dio);
 
-  Future<AuthResponse> login(String email, String password) async {
-    final response = await _rawDio.post(
-      '/api/auth/login',
+  Future<AuthTokens> login(String email, String password) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/auth/login',
       data: {'email': email, 'password': password},
+      options: Options(extra: {'skipAuth': true}),
     );
-    return AuthResponse.fromJson(response.data as Map<String, dynamic>);
+    return AuthTokens.fromJson(response.data!);
   }
 
-  Future<AuthResponse> register({
-    required String email,
-    required String password,
-    required String fullName,
-  }) async {
-    final response = await _rawDio.post(
-      '/api/auth/register',
-      data: {'email': email, 'password': password, 'fullName': fullName},
-    );
-    return AuthResponse.fromJson(response.data as Map<String, dynamic>);
-  }
-
-  Future<AuthResponse> refresh(String refreshToken) async {
-    final response = await _rawDio.post(
-      '/api/auth/refresh',
+  Future<AuthTokens> refresh(String refreshToken) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/auth/refresh',
       data: {'refreshToken': refreshToken},
+      options: Options(extra: {'skipAuth': true, 'skipRefresh': true}),
     );
-    return AuthResponse.fromJson(response.data as Map<String, dynamic>);
+    return AuthTokens.fromJson(response.data!);
   }
 
   Future<void> logout(String refreshToken) async {
-    await _rawDio.post(
-      '/api/auth/logout',
+    await _dio.post<void>(
+      '/auth/logout',
       data: {'refreshToken': refreshToken},
+      options: Options(extra: {'skipRefresh': true}),
     );
   }
 }

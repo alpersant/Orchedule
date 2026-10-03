@@ -1,31 +1,41 @@
-import 'dart:async';
-
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/data/auth_api.dart';
-import '../../features/auth/domain/auth_state.dart';
 import '../storage/secure_storage.dart';
 
-class AuthInterceptor extends Interceptor {
-  final Dio _rawDio;
-  final Ref _ref;
+typedef SessionExpiredCallback = Future<void> Function();
 
-  bool _isRefreshing = false;
-  final List<Completer<Response>> _pendingCompleters = [];
-  final List<RequestOptions> _pendingRequests = [];
+class AuthInterceptor extends QueuedInterceptor {
+  AuthInterceptor({
+    required Dio dio,
+    required AuthApi authApi,
+    required SecureStorage storage,
+    required SessionExpiredCallback onSessionExpired,
+  })  : _dio = dio,
+        _authApi = authApi,
+        _storage = storage,
+        _onSessionExpired = onSessionExpired;
 
-  AuthInterceptor(this._rawDio, this._ref);
+  final Dio _dio;
+  final AuthApi _authApi;
+  final SecureStorage _storage;
+  final SessionExpiredCallback _onSessionExpired;
 
   @override
   Future<void> onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    final token = await SecureStorage.instance.getAccessToken();
-    if (token != null && token.isNotEmpty) {
-      options.headers['Authorization'] = 'Bearer $token';
+    if (options.extra['skipAuth'] == true) {
+      handler.next(options);
+      return;
     }
+
+    final accessToken = await _storage.getAccessToken();
+    if (accessToken != null && accessToken.isNotEmpty) {
+      options.headers['Authorization'] = 'Bearer $accessToken';
+    }
+
     handler.next(options);
   }
 
@@ -34,70 +44,43 @@ class AuthInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
+    final request = err.requestOptions;
     final isUnauthorized = err.response?.statusCode == 401;
-    final isAuthEndpoint = err.requestOptions.path.contains('/api/auth/');
+    final cannotRefresh = request.extra['skipRefresh'] == true;
+    final alreadyRetried = request.extra['retried'] == true;
 
-    if (!isUnauthorized || isAuthEndpoint) {
+    if (!isUnauthorized || cannotRefresh || alreadyRetried) {
       handler.next(err);
       return;
     }
 
-    final completer = Completer<Response>();
-    _pendingCompleters.add(completer);
-    _pendingRequests.add(err.requestOptions);
-
-    if (!_isRefreshing) {
-      _isRefreshing = true;
-      unawaited(_refreshAndFlushQueue());
-    }
-
-    try {
-      final response = await completer.future;
-      handler.resolve(response);
-    } catch (e) {
+    final refreshToken = await _storage.getRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) {
+      await _onSessionExpired();
       handler.next(err);
+      return;
     }
-  }
-
-  Future<void> _refreshAndFlushQueue() async {
-    final completers = List<Completer<Response>>.from(_pendingCompleters);
-    final requests = List<RequestOptions>.from(_pendingRequests);
-    _pendingCompleters.clear();
-    _pendingRequests.clear();
 
     try {
-      final refreshToken = await SecureStorage.instance.getRefreshToken();
-      if (refreshToken == null) {
-        throw DioException(
-          requestOptions: RequestOptions(path: '/api/auth/refresh'),
-          error: 'No refresh token available',
-        );
-      }
-
-      final authApi = AuthApi(_rawDio);
-      final response = await authApi.refresh(refreshToken);
-
-      await SecureStorage.instance.saveTokens(
-        accessToken: response.accessToken,
-        refreshToken: response.refreshToken,
+      final tokens = await _authApi.refresh(refreshToken);
+      await _storage.saveTokens(
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
       );
 
-      for (var i = 0; i < requests.length; i++) {
-        requests[i].headers['Authorization'] = 'Bearer ${response.accessToken}';
-        try {
-          final retryResponse = await _rawDio.fetch(requests[i]);
-          completers[i].complete(retryResponse);
-        } catch (e) {
-          completers[i].completeError(e);
-        }
-      }
-    } catch (e) {
-      for (final completer in completers) {
-        completer.completeError(e);
-      }
-      await _ref.read(authProvider).forceLogout();
-    } finally {
-      _isRefreshing = false;
+      final retryOptions = request.copyWith(
+        headers: {
+          ...request.headers,
+          'Authorization': 'Bearer ${tokens.accessToken}',
+        },
+        extra: {...request.extra, 'retried': true},
+      );
+
+      final response = await _dio.fetch<dynamic>(retryOptions);
+      handler.resolve(response);
+    } on DioException {
+      await _onSessionExpired();
+      handler.next(err);
     }
   }
 }
