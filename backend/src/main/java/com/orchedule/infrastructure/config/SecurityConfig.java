@@ -5,12 +5,16 @@ import com.orchedule.infrastructure.security.JwtProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.access.AccessDeniedHandlerImpl;
 
 @Configuration
 @EnableMethodSecurity
@@ -23,14 +27,40 @@ public class SecurityConfig {
             JwtAuthenticationFilter jwtAuthenticationFilter
     ) throws Exception {
         return http
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/auth/register").permitAll()
-                        .anyRequest().authenticated()
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(
+                                new Http403ForbiddenEntryPoint()
+                        )
+                        .accessDeniedHandler(
+                                new AccessDeniedHandlerImpl()
+                        )
+                )
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**")
+                        .permitAll()
+
+                        .requestMatchers("/actuator/**")
+                        .permitAll()
+
+                        .requestMatchers(
+                                "/api/auth/login",
+                                "/api/auth/refresh",
+                                "/api/auth/register"
+                        )
+                        .permitAll()
+
+                        .anyRequest()
+                        .authenticated()
+                )
+                .addFilterBefore(
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                )
                 .build();
     }
 }

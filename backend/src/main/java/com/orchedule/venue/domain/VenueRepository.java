@@ -26,4 +26,6 @@ public interface VenueRepository {
     List<Venue> findAll();
 
     boolean existsByNameIgnoreCase(String name);
+
+    int deleteByVenueId(UUID venueId);
 }

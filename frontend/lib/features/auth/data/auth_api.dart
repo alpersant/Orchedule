@@ -1,13 +1,13 @@
 import 'package:dio/dio.dart';
 
 class AuthTokens {
-  final String accessToken;
-  final String refreshToken;
-
   const AuthTokens({
     required this.accessToken,
     required this.refreshToken,
   });
+
+  final String accessToken;
+  final String refreshToken;
 
   factory AuthTokens.fromJson(Map<String, dynamic> json) {
     return AuthTokens(
@@ -18,33 +18,57 @@ class AuthTokens {
 }
 
 class AuthApi {
-  final Dio _dio;
-
   AuthApi(this._dio);
 
-  Future<AuthTokens> login(String email, String password) async {
+  final Dio _dio;
+
+  static final Options _jsonOptions = Options(
+    contentType: Headers.jsonContentType,
+  );
+
+  Future<AuthTokens> login(
+      String email,
+      String password,
+      ) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/auth/login',
-      data: {'email': email, 'password': password},
-      options: Options(extra: {'skipAuth': true}),
+      data: {
+        'email': email,
+        'password': password,
+      },
+      options: _jsonOptions.copyWith(
+        extra: {
+          'skipAuth': true,
+        },
+      ),
     );
+
     return AuthTokens.fromJson(response.data!);
   }
 
   Future<AuthTokens> refresh(String refreshToken) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/auth/refresh',
-      data: {'refreshToken': refreshToken},
-      options: Options(extra: {'skipAuth': true, 'skipRefresh': true}),
+      data: {
+        'refreshToken': refreshToken,
+      },
+      options: _jsonOptions.copyWith(
+        extra: {
+          'skipAuth': true,
+        },
+      ),
     );
+
     return AuthTokens.fromJson(response.data!);
   }
 
   Future<void> logout(String refreshToken) async {
     await _dio.post<void>(
       '/auth/logout',
-      data: {'refreshToken': refreshToken},
-      options: Options(extra: {'skipRefresh': true}),
+      data: {
+        'refreshToken': refreshToken,
+      },
+      options: _jsonOptions,
     );
   }
 }

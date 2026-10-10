@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import '../../features/auth/presentation/auth_controller.dart';
+import 'package:orchedule_app/features/auth/domain/auth_state.dart';
 
 class AuthChangeNotifier extends ChangeNotifier {
   AuthStatus _status;
