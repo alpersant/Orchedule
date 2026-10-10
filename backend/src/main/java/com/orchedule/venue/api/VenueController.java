@@ -3,11 +3,7 @@ package com.orchedule.venue.api;
 import com.orchedule.venue.api.dto.CreateVenueRequest;
 import com.orchedule.venue.api.dto.UpdateVenueRequest;
 import com.orchedule.venue.api.dto.VenueResponse;
-import com.orchedule.venue.application.ActivateVenueService;
-import com.orchedule.venue.application.CreateVenueService;
-import com.orchedule.venue.application.DeactivateVenueService;
-import com.orchedule.venue.application.GetVenueService;
-import com.orchedule.venue.application.UpdateVenueService;
+import com.orchedule.venue.application.*;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,17 +21,21 @@ public class VenueController {
     private final GetVenueService getVenueService;
     private final ActivateVenueService activateVenueService;
     private final DeactivateVenueService deactivateVenueService;
+    private final DeleteVenueService deleteVenueService;
 
     public VenueController(CreateVenueService createVenueService,
                            UpdateVenueService updateVenueService,
                            GetVenueService getVenueService,
                            ActivateVenueService activateVenueService,
-                           DeactivateVenueService deactivateVenueService) {
+                           DeactivateVenueService deactivateVenueService,
+                           DeleteVenueService deleteVenueService) {
         this.createVenueService = createVenueService;
         this.updateVenueService = updateVenueService;
         this.getVenueService = getVenueService;
         this.activateVenueService = activateVenueService;
         this.deactivateVenueService = deactivateVenueService;
+
+        this.deleteVenueService = deleteVenueService;
     }
 
     @PostMapping
@@ -71,5 +71,14 @@ public class VenueController {
     @PatchMapping("/{venueId}/deactivate")
     public ResponseEntity<VenueResponse> deactivate(@PathVariable UUID venueId) {
         return ResponseEntity.ok(deactivateVenueService.deactivate(venueId));
+    }
+
+    @DeleteMapping("/{venueId}")
+    public ResponseEntity<Void> delete(
+            @PathVariable UUID venueId
+    ) {
+        deleteVenueService.delete(venueId);
+
+        return ResponseEntity.noContent().build();
     }
 }

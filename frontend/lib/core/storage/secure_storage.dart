@@ -25,10 +25,15 @@ class SecureStorage {
     required String accessToken,
     required String refreshToken,
   }) async {
-    await Future.wait([
-      saveAccessToken(accessToken),
-      saveRefreshToken(refreshToken),
-    ]);
+    await _storage.write(
+      key: _accessTokenKey,
+      value: accessToken,
+    );
+
+    await _storage.write(
+      key: _refreshTokenKey,
+      value: refreshToken,
+    );
   }
 
   Future<String?> getAccessToken() {

@@ -71,4 +71,9 @@ public class VenueRepositoryJpaAdapter implements VenueRepository {
     public boolean existsByNameIgnoreCase(String name) {
         return springDataVenueRepository.existsByNameIgnoreCase(name);
     }
+
+    @Override
+    public int deleteByVenueId(UUID venueId) {
+        return springDataVenueRepository.deleteByVenueId(venueId);
+    }
 }
