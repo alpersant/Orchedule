@@ -53,4 +53,9 @@ public class TeamRepositoryAdapter implements TeamRepository {
 
         return TeamPersistenceMapper.toDomain(repository.save(entity));
     }
+
+    @Override
+    public int deleteById(UUID teamId) {
+        return repository.deleteTeamById(teamId);
+    }
 }

@@ -15,4 +15,6 @@ public interface TeamRepository {
     boolean existsByNameIgnoreCase(String name);
 
     Team update(UUID id, String name, boolean active);
+
+    int deleteById(UUID teamId);
 }
