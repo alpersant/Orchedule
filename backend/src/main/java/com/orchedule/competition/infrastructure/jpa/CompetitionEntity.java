@@ -4,7 +4,16 @@ import com.orchedule.competition.domain.CompetitionDay;
 import com.orchedule.competition.domain.CompetitionHour;
 import com.orchedule.competition.domain.CompetitionStatus;
 import com.orchedule.competition.domain.PreferencePolicy;
-import jakarta.persistence.*;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Table;
 
 import java.time.OffsetDateTime;
 import java.util.HashSet;
@@ -29,13 +38,19 @@ public class CompetitionEntity {
     private CompetitionStatus status;
 
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "competition_default_days", joinColumns = @JoinColumn(name = "competition_id"))
+    @CollectionTable(
+            name = "competition_default_days",
+            joinColumns = @JoinColumn(name = "competition_id")
+    )
     @Enumerated(EnumType.STRING)
     @Column(name = "day", nullable = false, length = 20)
     private Set<CompetitionDay> defaultDays = new HashSet<>();
 
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "competition_default_hours", joinColumns = @JoinColumn(name = "competition_id"))
+    @CollectionTable(
+            name = "competition_default_hours",
+            joinColumns = @JoinColumn(name = "competition_id")
+    )
     @Enumerated(EnumType.STRING)
     @Column(name = "hour", nullable = false, length = 10)
     private Set<CompetitionHour> defaultHours = new HashSet<>();
@@ -53,12 +68,21 @@ public class CompetitionEntity {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
-    protected CompetitionEntity() {}
+    protected CompetitionEntity() {
+    }
 
-    public CompetitionEntity(UUID id, String name, String description, CompetitionStatus status,
-                              Set<CompetitionDay> defaultDays, Set<CompetitionHour> defaultHours,
-                              int defaultFieldCount, PreferencePolicy preferencePolicy,
-                              OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+    public CompetitionEntity(
+            UUID id,
+            String name,
+            String description,
+            CompetitionStatus status,
+            Set<CompetitionDay> defaultDays,
+            Set<CompetitionHour> defaultHours,
+            int defaultFieldCount,
+            PreferencePolicy preferencePolicy,
+            OffsetDateTime createdAt,
+            OffsetDateTime updatedAt
+    ) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -71,23 +95,75 @@ public class CompetitionEntity {
         this.updatedAt = updatedAt;
     }
 
-    public UUID getId() { return id; }
-    public String getName() { return name; }
-    public String getDescription() { return description; }
-    public CompetitionStatus getStatus() { return status; }
-    public Set<CompetitionDay> getDefaultDays() { return defaultDays; }
-    public Set<CompetitionHour> getDefaultHours() { return defaultHours; }
-    public int getDefaultFieldCount() { return defaultFieldCount; }
-    public PreferencePolicy getPreferencePolicy() { return preferencePolicy; }
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
+    public UUID getId() {
+        return id;
+    }
 
-    public void setName(String name) { this.name = name; }
-    public void setDescription(String description) { this.description = description; }
-    public void setStatus(CompetitionStatus status) { this.status = status; }
-    public void setDefaultDays(Set<CompetitionDay> defaultDays) { this.defaultDays = new HashSet<>(defaultDays); }
-    public void setDefaultHours(Set<CompetitionHour> defaultHours) { this.defaultHours = new HashSet<>(defaultHours); }
-    public void setDefaultFieldCount(int defaultFieldCount) { this.defaultFieldCount = defaultFieldCount; }
-    public void setPreferencePolicy(PreferencePolicy preferencePolicy) { this.preferencePolicy = preferencePolicy; }
-    public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public String getName() {
+        return name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public CompetitionStatus getStatus() {
+        return status;
+    }
+
+    public Set<CompetitionDay> getDefaultDays() {
+        return Set.copyOf(defaultDays);
+    }
+
+    public Set<CompetitionHour> getDefaultHours() {
+        return Set.copyOf(defaultHours);
+    }
+
+    public int getDefaultFieldCount() {
+        return defaultFieldCount;
+    }
+
+    public PreferencePolicy getPreferencePolicy() {
+        return preferencePolicy;
+    }
+
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public OffsetDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setStatus(CompetitionStatus status) {
+        this.status = status;
+    }
+
+    public void setDefaultDays(Set<CompetitionDay> defaultDays) {
+        this.defaultDays = new HashSet<>(defaultDays);
+    }
+
+    public void setDefaultHours(Set<CompetitionHour> defaultHours) {
+        this.defaultHours = new HashSet<>(defaultHours);
+    }
+
+    public void setDefaultFieldCount(int defaultFieldCount) {
+        this.defaultFieldCount = defaultFieldCount;
+    }
+
+    public void setPreferencePolicy(PreferencePolicy preferencePolicy) {
+        this.preferencePolicy = preferencePolicy;
+    }
+
+    public void setUpdatedAt(OffsetDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 }

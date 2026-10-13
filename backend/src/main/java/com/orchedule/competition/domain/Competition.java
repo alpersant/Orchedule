@@ -83,16 +83,47 @@ public class Competition {
     }
 
     public void activate() {
-        if (status == CompetitionStatus.CLOSED) {
-            throw new IllegalStateException("Cannot activate a closed competition");
+        if (status == CompetitionStatus.CLOSED
+                || status == CompetitionStatus.ARCHIVED) {
+            throw new IllegalStateException(
+                    "Cannot activate a closed or archived competition"
+            );
         }
+
+        if (status == CompetitionStatus.ACTIVE) {
+            return;
+        }
+
         this.status = CompetitionStatus.ACTIVE;
         touch();
     }
 
     public void close() {
+        if (status == CompetitionStatus.ARCHIVED) {
+            throw new IllegalStateException(
+                    "Cannot close an archived competition"
+            );
+        }
+
+        if (status == CompetitionStatus.CLOSED) {
+            return;
+        }
+
         this.status = CompetitionStatus.CLOSED;
         touch();
+    }
+
+    public void archive() {
+        if (status == CompetitionStatus.ARCHIVED) {
+            return;
+        }
+
+        this.status = CompetitionStatus.ARCHIVED;
+        touch();
+    }
+
+    public boolean isArchived() {
+        return status == CompetitionStatus.ARCHIVED;
     }
 
     private void touch() {

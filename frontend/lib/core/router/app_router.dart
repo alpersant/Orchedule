@@ -6,7 +6,7 @@ import '../../app/providers.dart';
 import '../../features/audit/presentation/audit_page.dart';
 import '../../features/auth/domain/auth_state.dart';
 import '../../features/auth/presentation/login_page.dart';
-import '../../features/competitions/presentation/competitions_page.dart';
+import '../../features/competitions/presentation/pages/competitions_page.dart';
 import '../../features/dashboard/presentation/dashboard_page.dart';
 import '../../features/schedules/presentation/schedules_page.dart';
 import '../../features/seasons/presentation/seasons_page.dart';
