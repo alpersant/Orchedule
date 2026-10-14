@@ -3,6 +3,8 @@ package com.orchedule.competition.infrastructure.jpa;
 import com.orchedule.competition.domain.Competition;
 import com.orchedule.competition.domain.CompetitionRepository;
 import com.orchedule.competition.domain.CompetitionStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -14,34 +16,41 @@ public class CompetitionRepositoryJpaAdapter implements CompetitionRepository {
 
     private final SpringDataCompetitionRepository springDataCompetitionRepository;
 
-    public CompetitionRepositoryJpaAdapter(SpringDataCompetitionRepository springDataCompetitionRepository) {
+    public CompetitionRepositoryJpaAdapter(
+            SpringDataCompetitionRepository springDataCompetitionRepository
+    ) {
         this.springDataCompetitionRepository = springDataCompetitionRepository;
     }
 
     @Override
     public Competition save(Competition competition) {
-        CompetitionEntity entity = new CompetitionEntity(
-                competition.getId(), competition.getName(), competition.getDescription(),
-                competition.getStatus(), competition.getDefaultDays(), competition.getDefaultHours(),
-                competition.getDefaultFieldCount(), competition.getPreferencePolicy(),
-                competition.getCreatedAt(), competition.getUpdatedAt());
-        CompetitionEntity saved = springDataCompetitionRepository.save(entity);
+        CompetitionEntity saved = springDataCompetitionRepository.save(
+                toEntity(competition)
+        );
+
         return toDomain(saved);
     }
 
     @Override
     public Optional<Competition> findById(UUID id) {
-        return springDataCompetitionRepository.findById(id).map(this::toDomain);
+        return springDataCompetitionRepository.findById(id)
+                .map(this::toDomain);
     }
 
     @Override
     public List<Competition> findAll() {
-        return springDataCompetitionRepository.findAll().stream().map(this::toDomain).toList();
+        return springDataCompetitionRepository.findAll()
+                .stream()
+                .map(this::toDomain)
+                .toList();
     }
 
     @Override
     public List<Competition> findByStatus(CompetitionStatus status) {
-        return springDataCompetitionRepository.findByStatus(status).stream().map(this::toDomain).toList();
+        return springDataCompetitionRepository.findByStatus(status)
+                .stream()
+                .map(this::toDomain)
+                .toList();
     }
 
     @Override
@@ -49,10 +58,54 @@ public class CompetitionRepositoryJpaAdapter implements CompetitionRepository {
         return springDataCompetitionRepository.existsByName(name);
     }
 
+    @Override
+    public Page<Competition> search(
+            CompetitionStatus status,
+            String search,
+            Pageable pageable
+    ) {
+        CompetitionSpecifications specifications = new CompetitionSpecifications();
+
+        return springDataCompetitionRepository
+                .findAll(
+                        specifications.byStatusAndName(status, search),
+                        pageable
+                )
+                .map(this::toDomain);
+    }
+
+    @Override
+    public void delete(Competition competition) {
+        springDataCompetitionRepository.deleteById(competition.getId());
+    }
+
+    private CompetitionEntity toEntity(Competition competition) {
+        return new CompetitionEntity(
+                competition.getId(),
+                competition.getName(),
+                competition.getDescription(),
+                competition.getStatus(),
+                competition.getDefaultDays(),
+                competition.getDefaultHours(),
+                competition.getDefaultFieldCount(),
+                competition.getPreferencePolicy(),
+                competition.getCreatedAt(),
+                competition.getUpdatedAt()
+        );
+    }
+
     private Competition toDomain(CompetitionEntity entity) {
-        return new Competition(entity.getId(), entity.getName(), entity.getDescription(),
-                entity.getStatus(), entity.getDefaultDays(), entity.getDefaultHours(),
-                entity.getDefaultFieldCount(), entity.getPreferencePolicy(),
-                entity.getCreatedAt(), entity.getUpdatedAt());
+        return new Competition(
+                entity.getId(),
+                entity.getName(),
+                entity.getDescription(),
+                entity.getStatus(),
+                entity.getDefaultDays(),
+                entity.getDefaultHours(),
+                entity.getDefaultFieldCount(),
+                entity.getPreferencePolicy(),
+                entity.getCreatedAt(),
+                entity.getUpdatedAt()
+        );
     }
 }

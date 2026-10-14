@@ -1,0 +1,3 @@
+enum CompetitionStatus { draft, active, closed, archived }
+CompetitionStatus competitionStatusFromApi(String value) => CompetitionStatus.values.firstWhere((e) => e.name.toUpperCase() == value.toUpperCase(), orElse: () => CompetitionStatus.draft);
+class Competition { const Competition({required this.id,required this.name,required this.description,required this.status,required this.defaultDays,required this.defaultHours,required this.defaultFieldCount,required this.createdAt,required this.updatedAt}); final String id; final String name; final String description; final CompetitionStatus status; final List<String> defaultDays; final List<String> defaultHours; final int defaultFieldCount; final DateTime? createdAt; final DateTime? updatedAt; }
