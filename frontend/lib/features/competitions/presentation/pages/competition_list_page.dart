@@ -197,6 +197,125 @@ class _CompetitionListPageState extends State<CompetitionListPage> {
     );
   }
 
+  Future<void> _deleteSelectedCompetitions() async {
+    final controller = widget.controller;
+
+    if (controller.isSaving || controller.isLoading) {
+      return;
+    }
+
+    final count = controller.selectedIds.length;
+
+    if (count == 0) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        final colors = Theme.of(dialogContext).colorScheme;
+
+        return AlertDialog(
+          title: Text(
+            count == 1
+                ? 'Eliminar competición seleccionada'
+                : 'Eliminar $count competiciones',
+          ),
+          scrollable: true,
+          content: Text(
+            '¿Quieres eliminar definitivamente '
+                '${count == 1 ? 'la competición seleccionada' : 'las $count competiciones seleccionadas'}'
+                ' y su configuración propia?\n\n'
+                'Los equipos y campos se conservarán.\n\n'
+                'Esta acción no se puede deshacer.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: colors.error,
+                foregroundColor: colors.onError,
+              ),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: Text('Eliminar $count'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted || confirmed != true) {
+      return;
+    }
+
+    final result = await controller.deleteSelected();
+
+    if (!mounted) {
+      return;
+    }
+
+    if (result == null) {
+      _showMessage(
+        controller.errorMessage ??
+            'No se pudo completar el borrado masivo.',
+      );
+      return;
+    }
+
+    if (result.failures.isEmpty) {
+      _showMessage(
+        result.deletedIds.length == 1
+            ? 'Competición eliminada.'
+            : '${result.deletedIds.length} competiciones eliminadas.',
+      );
+      return;
+    }
+
+    _showMessage(
+      '${result.deletedIds.length} eliminadas. '
+          '${result.failures.length} no pudieron eliminarse.',
+    );
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Borrado completado con incidencias'),
+          scrollable: true,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: result.failures.map((failure) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  'Competición: ${failure.competitionId}\n'
+                      'Motivo: ${failure.reason}',
+                ),
+              );
+            }).toList(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Cerrar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _changeCompetitionStatus(
       Competition competition, {
         required bool activate,
@@ -253,9 +372,53 @@ class _CompetitionListPageState extends State<CompetitionListPage> {
     final controller = widget.controller;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Competiciones'),
-      ),
+        appBar: AppBar(
+          title: Text(
+            controller.selectedIds.isEmpty
+                ? 'Competiciones'
+                : '${controller.selectedIds.length} seleccionadas',
+          ),
+          actions: [
+            if (controller.selectedIds.isNotEmpty) ...[
+              IconButton(
+                tooltip: 'Cancelar selección',
+                onPressed: controller.isSaving
+                    ? null
+                    : () {
+                  final selectedIds =
+                  controller.selectedIds.toList(growable: false);
+
+                  for (final id in selectedIds) {
+                    controller.toggleSelection(id);
+                  }
+                },
+                icon: const Icon(Icons.close),
+              ),
+              IconButton(
+                tooltip:
+                'Eliminar ${controller.selectedIds.length} seleccionadas',
+                onPressed: controller.isSaving || controller.isLoading
+                    ? null
+                    : _deleteSelectedCompetitions,
+                icon: Icon(
+                  Icons.delete_sweep_outlined,
+                  color: controller.isSaving || controller.isLoading
+                      ? null
+                      : Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ],
+            IconButton(
+              tooltip: 'Actualizar',
+              onPressed: controller.isSaving || controller.isLoading
+                  ? null
+                  : () {
+                controller.load();
+              },
+              icon: const Icon(Icons.refresh),
+            ),
+          ],
+        ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: controller.isSaving ? null : _createCompetition,
         icon: const Icon(Icons.add),
