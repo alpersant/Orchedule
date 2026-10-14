@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/entities/competition.dart';
 import '../controllers/competition_list_controller.dart';
+import '../widgets/competition_action_dialogs.dart';
 import '../widgets/competition_create_dialog.dart';
 
 class CompetitionListPage extends StatefulWidget {
@@ -101,6 +102,152 @@ class _CompetitionListPageState extends State<CompetitionListPage> {
     );
   }
 
+  Future<void> _editCompetition(Competition competition) async {
+    if (widget.controller.isSaving) {
+      return;
+    }
+
+    final result = await showDialog<CompetitionDetailsResult>(
+      context: context,
+      builder: (_) => CompetitionEditDialog(
+        competition: competition,
+      ),
+    );
+
+    if (!mounted || result == null) {
+      return;
+    }
+
+    final updated = await widget.controller.update(
+      id: competition.id,
+      name: result.name,
+      description: result.description,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    _showMessage(
+      updated
+          ? 'Competición actualizada.'
+          : 'No se pudo actualizar la competición.',
+    );
+  }
+
+  Future<void> _duplicateCompetition(Competition competition) async {
+    if (widget.controller.isSaving) {
+      return;
+    }
+
+    final name = await showDialog<String>(
+      context: context,
+      builder: (_) => CompetitionDuplicateDialog(
+        competition: competition,
+      ),
+    );
+
+    if (!mounted || name == null) {
+      return;
+    }
+
+    final duplicated = await widget.controller.duplicate(
+      competition.id,
+      name,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    _showMessage(
+      duplicated
+          ? 'Competición duplicada.'
+          : 'No se pudo duplicar la competición.',
+    );
+  }
+
+  Future<void> _deleteCompetition(Competition competition) async {
+    if (widget.controller.isSaving) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => CompetitionDeleteDialog(
+        competition: competition,
+      ),
+    );
+
+    if (!mounted || confirmed != true) {
+      return;
+    }
+
+    final deleted = await widget.controller.deleteOne(competition.id);
+
+    if (!mounted) {
+      return;
+    }
+
+    _showMessage(
+      deleted
+          ? 'Competición eliminada.'
+          : 'No se pudo eliminar la competición.',
+    );
+  }
+
+  Future<void> _changeCompetitionStatus(
+      Competition competition, {
+        required bool activate,
+      }) async {
+    if (widget.controller.isSaving) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          activate ? 'Activar competición' : 'Cerrar competición',
+        ),
+        content: Text(
+          activate
+              ? '¿Quieres activar "${competition.name}"?'
+              : '¿Quieres cerrar "${competition.name}"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(activate ? 'Activar' : 'Cerrar'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted || confirmed != true) {
+      return;
+    }
+
+    final updated = activate
+        ? await widget.controller.activate(competition.id)
+        : await widget.controller.close(competition.id);
+
+    if (!mounted) {
+      return;
+    }
+
+    _showMessage(
+      updated
+          ? 'Estado actualizado.'
+          : 'No se pudo actualizar el estado.',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = widget.controller;
@@ -195,12 +342,22 @@ class _CompetitionListPageState extends State<CompetitionListPage> {
 
                       return _CompetitionListItem(
                         competition: competition,
-                        isSelected: controller.selectedIds.contains(
-                          competition.id,
-                        ),
+                        isSelected: controller.selectedIds.contains(competition.id),
+                        enabled: !controller.isSaving && !controller.isLoading,
                         onToggleSelection: () {
                           controller.toggleSelection(competition.id);
                         },
+                        onEdit: () => _editCompetition(competition),
+                        onDuplicate: () => _duplicateCompetition(competition),
+                        onDelete: () => _deleteCompetition(competition),
+                        onActivate: () => _changeCompetitionStatus(
+                          competition,
+                          activate: true,
+                        ),
+                        onClose: () => _changeCompetitionStatus(
+                          competition,
+                          activate: false,
+                        ),
                       );
                     },
                   ),
@@ -255,40 +412,130 @@ class _CompetitionListItem extends StatelessWidget {
   const _CompetitionListItem({
     required this.competition,
     required this.isSelected,
+    required this.enabled,
     required this.onToggleSelection,
+    required this.onEdit,
+    required this.onDuplicate,
+    required this.onDelete,
+    required this.onActivate,
+    required this.onClose,
   });
 
   final Competition competition;
   final bool isSelected;
+  final bool enabled;
+
   final VoidCallback onToggleSelection;
+  final VoidCallback onEdit;
+  final VoidCallback onDuplicate;
+  final VoidCallback onDelete;
+  final VoidCallback onActivate;
+  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = Theme.of(context).colorScheme;
 
     return Card(
       child: ListTile(
         leading: Checkbox(
           value: isSelected,
-          onChanged: (_) {
-            onToggleSelection();
-          },
+          onChanged: enabled ? (_) => onToggleSelection() : null,
         ),
         title: Text(competition.name),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 4),
           child: Text(
             '${_statusLabel(competition.status)} · '
-                '${competition.defaultDays.join(', ')} · '
-                '${competition.defaultHours.join(', ')} · '
                 '${competition.defaultFieldCount} campo(s)',
           ),
         ),
-        trailing: Icon(
-          Icons.chevron_right,
-          color: colorScheme.outline,
+        onTap: enabled ? onEdit : null,
+        trailing: PopupMenuButton<String>(
+          enabled: enabled,
+          tooltip: 'Acciones de la competición',
+          icon: const Icon(Icons.more_vert),
+          onSelected: (action) {
+            switch (action) {
+              case 'edit':
+                onEdit();
+                break;
+              case 'duplicate':
+                onDuplicate();
+                break;
+              case 'activate':
+                onActivate();
+                break;
+              case 'close':
+                onClose();
+                break;
+              case 'delete':
+                onDelete();
+                break;
+            }
+          },
+          itemBuilder: (_) => [
+            const PopupMenuItem<String>(
+              value: 'edit',
+              child: Row(
+                children: [
+                  Icon(Icons.edit_outlined),
+                  SizedBox(width: 8),
+                  Text('Editar'),
+                ],
+              ),
+            ),
+            const PopupMenuItem<String>(
+              value: 'duplicate',
+              child: Row(
+                children: [
+                  Icon(Icons.copy_outlined),
+                  SizedBox(width: 8),
+                  Text('Duplicar'),
+                ],
+              ),
+            ),
+            if (competition.status == CompetitionStatus.draft)
+              const PopupMenuItem<String>(
+                value: 'activate',
+                child: Row(
+                  children: [
+                    Icon(Icons.play_circle_outline),
+                    SizedBox(width: 8),
+                    Text('Activar'),
+                  ],
+                ),
+              ),
+            if (competition.status == CompetitionStatus.active)
+              const PopupMenuItem<String>(
+                value: 'close',
+                child: Row(
+                  children: [
+                    Icon(Icons.lock_outline),
+                    SizedBox(width: 8),
+                    Text('Cerrar'),
+                  ],
+                ),
+              ),
+            const PopupMenuDivider(),
+            PopupMenuItem<String>(
+              value: 'delete',
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.delete_outline,
+                    color: colors.error,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Eliminar',
+                    style: TextStyle(color: colors.error),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        onTap: onToggleSelection,
       ),
     );
   }
