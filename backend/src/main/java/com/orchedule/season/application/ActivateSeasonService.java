@@ -50,6 +50,7 @@ public class ActivateSeasonService {
     private SeasonResponse toResponse(Season season) {
         return new SeasonResponse(
                 season.id(),
+                season.competitionId(),
                 season.name(),
                 season.startDate(),
                 season.endDate(),

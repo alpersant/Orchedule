@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public interface SeasonRepository {
 
-    UUID create(String name,
+    UUID create(UUID competitionId, String name,
                 LocalDate startDate,
                 LocalDate endDate,
                 SeasonStatus status,
@@ -25,4 +25,11 @@ public interface SeasonRepository {
     List<Season> findAll();
 
     boolean existsByNameIgnoreCase(String name);
+
+    boolean existsByCompetitionIdAndNameIgnoreCase(UUID competitionId, String name);
+
+    org.springframework.data.domain.Page<Season> search(UUID competitionId, String search,
+            SeasonStatus status, org.springframework.data.domain.Pageable pageable);
+
+    boolean deleteById(UUID id);
 }

@@ -1,6 +1,5 @@
 package com.orchedule.season.api.dto;
 
-import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -14,11 +13,9 @@ public record UpdateSeasonRequest(
         String name,
 
         @NotNull(message = "Season startDate is required")
-        @FutureOrPresent(message = "Season startDate must be today or in the future")
         LocalDate startDate,
 
         @NotNull(message = "Season endDate is required")
-        @FutureOrPresent(message = "Season endDate must be today or in the future")
         LocalDate endDate,
 
         @NotNull(message = "Season active flag is required")

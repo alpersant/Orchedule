@@ -6,6 +6,7 @@ import java.util.UUID;
 
 public record Season(
         UUID id,
+        UUID competitionId,
         String name,
         LocalDate startDate,
         LocalDate endDate,

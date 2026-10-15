@@ -15,14 +15,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class CreateSeasonService {
 
     private final SeasonRepository seasonRepository;
+    private final com.orchedule.season.domain.CompetitionLookup competitionLookup;
 
-    public CreateSeasonService(SeasonRepository seasonRepository) {
+    public CreateSeasonService(SeasonRepository seasonRepository, com.orchedule.season.domain.CompetitionLookup competitionLookup) {
         this.seasonRepository = seasonRepository;
+        this.competitionLookup = competitionLookup;
     }
 
     @Transactional
     @PreAuthorize("hasAnyRole('ADMIN', 'ORGANIZER')")
     public SeasonResponse create(CreateSeasonRequest request) {
+        if (request.competitionId() == null || !competitionLookup.exists(request.competitionId())) {
+            throw new com.orchedule.season.application.exception.InvalidSeasonException("Competition does not exist");
+        }
         SeasonValidator.validate(
                 request.name(),
                 request.startDate(),
@@ -32,11 +37,12 @@ public class CreateSeasonService {
 
         String normalizedName = request.name().trim();
 
-        if (seasonRepository.existsByNameIgnoreCase(normalizedName)) {
+        if (seasonRepository.existsByCompetitionIdAndNameIgnoreCase(request.competitionId(), normalizedName)) {
             throw new AlreadyExistsException("Season already exists with name: " + normalizedName);
         }
 
         var seasonId = seasonRepository.create(
+                request.competitionId(),
                 normalizedName,
                 request.startDate(),
                 request.endDate(),
@@ -53,6 +59,7 @@ public class CreateSeasonService {
     private SeasonResponse toResponse(Season season) {
         return new SeasonResponse(
                 season.id(),
+                season.competitionId(),
                 season.name(),
                 season.startDate(),
                 season.endDate(),
