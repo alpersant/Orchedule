@@ -12,7 +12,7 @@ import java.util.UUID;
 @Table(
         name = "season",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_season_name", columnNames = "name")
+                @UniqueConstraint(name = "uk_season_competition_name", columnNames = {"competition_id", "name"})
         },
         indexes = {
                 @Index(name = "idx_season_status", columnList = "status"),
@@ -26,6 +26,13 @@ public class SeasonEntity {
     @Id
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
+
+    @Column(name = "competition_id", updatable = false)
+    private UUID competitionId;
+
+    @Version
+    @Column(nullable = false)
+    private long version;
 
     @Column(name = "name", nullable = false, length = 120)
     private String name;
@@ -52,7 +59,7 @@ public class SeasonEntity {
     protected SeasonEntity() {
     }
 
-    public static SeasonEntity create(String name,
+    public static SeasonEntity create(UUID competitionId, String name,
                                       LocalDate startDate,
                                       LocalDate endDate,
                                       SeasonStatus status,
@@ -61,6 +68,7 @@ public class SeasonEntity {
         OffsetDateTime now = OffsetDateTime.now();
 
         entity.id = UUID.randomUUID();
+        entity.competitionId = competitionId;
         entity.name = name;
         entity.startDate = startDate;
         entity.endDate = endDate;
@@ -88,6 +96,7 @@ public class SeasonEntity {
     public Season toDomain() {
         return new Season(
                 id,
+                competitionId,
                 name,
                 startDate,
                 endDate,

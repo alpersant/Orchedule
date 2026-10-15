@@ -6,8 +6,10 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 public record CreateSeasonRequest(
+        @NotNull UUID competitionId,
 
         @NotBlank(message = "Season name is required")
         @Size(max = 120, message = "Season name must not exceed 120 characters")

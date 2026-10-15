@@ -28,6 +28,9 @@ public class UpdateSeasonService {
         Season currentSeason = seasonRepository.findById(seasonId)
                 .orElseThrow(() -> new SeasonNotFoundException(seasonId));
 
+        if (request.active() == null || (currentSeason.status() == com.orchedule.season.domain.SeasonStatus.CLOSED && request.active())) {
+            throw new com.orchedule.season.application.exception.InvalidSeasonException("Closed seasons cannot be enabled");
+        }
         SeasonValidator.validate(
                 request.name(),
                 request.startDate(),
@@ -38,7 +41,7 @@ public class UpdateSeasonService {
         String normalizedName = request.name().trim();
 
         boolean nameChanged = !currentSeason.name().equalsIgnoreCase(normalizedName);
-        if (nameChanged && seasonRepository.existsByNameIgnoreCase(normalizedName)) {
+        if (nameChanged && seasonRepository.existsByCompetitionIdAndNameIgnoreCase(currentSeason.competitionId(), normalizedName)) {
             throw new AlreadyExistsException("Season already exists with name: " + normalizedName);
         }
 
@@ -57,6 +60,7 @@ public class UpdateSeasonService {
     private SeasonResponse toResponse(Season season) {
         return new SeasonResponse(
                 season.id(),
+                season.competitionId(),
                 season.name(),
                 season.startDate(),
                 season.endDate(),

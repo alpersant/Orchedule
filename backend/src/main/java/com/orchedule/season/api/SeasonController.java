@@ -26,17 +26,23 @@ public class SeasonController {
     private final GetSeasonService getSeasonService;
     private final ActivateSeasonService activateSeasonService;
     private final CloseSeasonService closeSeasonService;
+    private final com.orchedule.season.application.DeleteSeasonService deleteSeasonService;
+    private final com.orchedule.season.application.BatchDeleteSeasonsService batchDeleteSeasonsService;
 
     public SeasonController(CreateSeasonService createSeasonService,
                             UpdateSeasonService updateSeasonService,
                             GetSeasonService getSeasonService,
                             ActivateSeasonService activateSeasonService,
-                            CloseSeasonService closeSeasonService) {
+                            CloseSeasonService closeSeasonService,
+                            com.orchedule.season.application.DeleteSeasonService deleteSeasonService,
+                            com.orchedule.season.application.BatchDeleteSeasonsService batchDeleteSeasonsService) {
         this.createSeasonService = createSeasonService;
         this.updateSeasonService = updateSeasonService;
         this.getSeasonService = getSeasonService;
         this.activateSeasonService = activateSeasonService;
         this.closeSeasonService = closeSeasonService;
+        this.deleteSeasonService = deleteSeasonService;
+        this.batchDeleteSeasonsService = batchDeleteSeasonsService;
     }
 
     @PostMapping
@@ -72,5 +78,26 @@ public class SeasonController {
     @PatchMapping("/{seasonId}/close")
     public ResponseEntity<SeasonResponse> close(@PathVariable UUID seasonId) {
         return ResponseEntity.ok(closeSeasonService.close(seasonId));
+    }
+    @GetMapping("/search")
+    public ResponseEntity<com.orchedule.season.api.dto.SeasonPageResponse> search(
+            @RequestParam(required=false) UUID competitionId,
+            @RequestParam(required=false) String search,
+            @RequestParam(required=false) com.orchedule.season.domain.SeasonStatus status,
+            @RequestParam(defaultValue="0") int page,
+            @RequestParam(defaultValue="20") int size) {
+        return ResponseEntity.ok(getSeasonService.search(competitionId, search, status, page, size));
+    }
+
+    @DeleteMapping("/{seasonId}")
+    public ResponseEntity<Void> delete(@PathVariable UUID seasonId) {
+        deleteSeasonService.delete(seasonId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/batch-delete")
+    public ResponseEntity<com.orchedule.season.application.BatchDeleteSeasonsResult> deleteMany(
+            @Valid @RequestBody com.orchedule.season.api.dto.BatchDeleteSeasonsRequest request) {
+        return ResponseEntity.ok(batchDeleteSeasonsService.delete(request.seasonIds()));
     }
 }
