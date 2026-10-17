@@ -1,7 +1,6 @@
 package com.orchedule.field.api.dto;
 
 import com.orchedule.field.domain.FieldWeeklyAvailability;
-
 import java.util.UUID;
 
 public record FieldWeeklyAvailabilityResponse(
@@ -13,7 +12,10 @@ public record FieldWeeklyAvailabilityResponse(
 ) {
     public static FieldWeeklyAvailabilityResponse from(FieldWeeklyAvailability availability) {
         return new FieldWeeklyAvailabilityResponse(
-                availability.getId(), availability.getSeasonId(), availability.getWeekNumber(),
-                availability.getFieldId(), availability.isEnabled());
+                availability.getId(),
+                availability.getSeasonId(),
+                availability.getWeekNumber(),
+                availability.getFieldId(),
+                availability.isEnabled());
     }
 }

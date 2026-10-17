@@ -115,7 +115,7 @@ class _VenueFormPageState extends ConsumerState<VenueFormPage> {
       SnackBar(
         backgroundColor: Theme.of(context).colorScheme.error,
         content: Text(
-          error ?? 'No se ha podido guardar el campo.',
+          error ?? 'No se ha podido guardar la instalación.',
         ),
         duration: const Duration(seconds: 8),
       ),
@@ -129,7 +129,7 @@ class _VenueFormPageState extends ConsumerState<VenueFormPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          isEditing ? 'Editar campo' : 'Nuevo campo',
+          isEditing ? 'Editar instalación' : 'Nueva instalación',
         ),
       ),
       body: Center(
@@ -146,7 +146,7 @@ class _VenueFormPageState extends ConsumerState<VenueFormPage> {
                   maxLength: 120,
                   decoration: const InputDecoration(
                     labelText: 'Nombre',
-                    hintText: 'Campo Municipal Norte',
+                    hintText: 'Polideportivo Municipal Norte',
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) {

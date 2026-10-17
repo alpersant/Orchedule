@@ -11,12 +11,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Assembles the inputs required to generate a round by querying the ACL
- * ports for team, field and season data. This is the single seam where
- * scheduling talks to the outside world — GenerateScheduleForSeasonService
- * itself stays free of any cross-module dependency.
- */
+/** Assembles scheduling inputs through narrow ACL ports. */
 @Component
 public class ScheduleInputAssembler {
 
@@ -27,8 +22,7 @@ public class ScheduleInputAssembler {
     public ScheduleInputAssembler(
             @Qualifier("schedulingTeamPreferencesAdapter") TeamPreferencesPort teamPreferencesPort,
             FieldAvailabilityPort fieldAvailabilityPort,
-            SeasonContextPort seasonContextPort
-    ) {
+            SeasonContextPort seasonContextPort) {
         this.teamPreferencesPort = teamPreferencesPort;
         this.fieldAvailabilityPort = fieldAvailabilityPort;
         this.seasonContextPort = seasonContextPort;
@@ -39,10 +33,9 @@ public class ScheduleInputAssembler {
         UUID competitionId = seasonContextPort.getCompetitionIdForSeason(seasonId);
 
         List<TeamScheduleProfile> profiles = teamPreferencesPort.getProfilesForSeason(seasonId);
-        FieldSchedulingContext fieldContext =
+        FieldSchedulingContext context =
                 fieldAvailabilityPort.getSchedulingContext(competitionId, seasonId, weekNumber);
 
-        return new GenerateRoundCommand(seasonId, weekNumber, profiles,
-                fieldContext.openDays(), fieldContext.openHours(), fieldContext.availableFieldIds());
+        return new GenerateRoundCommand(seasonId, weekNumber, profiles, context.slots());
     }
 }

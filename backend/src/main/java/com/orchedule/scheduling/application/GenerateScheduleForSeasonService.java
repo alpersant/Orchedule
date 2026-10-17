@@ -2,15 +2,14 @@ package com.orchedule.scheduling.application;
 
 import com.orchedule.scheduling.application.exception.ScheduleGenerationException;
 import com.orchedule.scheduling.application.exception.ScheduleRoundAlreadyExistsException;
+import com.orchedule.scheduling.application.port.FieldScheduleSlot;
 import com.orchedule.scheduling.domain.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
-import java.time.LocalTime;
 import java.util.*;
-
 
 @Service
 public class GenerateScheduleForSeasonService {
@@ -20,52 +19,35 @@ public class GenerateScheduleForSeasonService {
     private final TeamRotationHistoryStore rotationHistoryStore;
 
     public GenerateScheduleForSeasonService(ScheduleRoundRepository scheduleRoundRepository,
-                                             RotationEngine rotationEngine,
-                                             TeamRotationHistoryStore rotationHistoryStore) {
+                                            RotationEngine rotationEngine,
+                                            TeamRotationHistoryStore rotationHistoryStore) {
         this.scheduleRoundRepository = scheduleRoundRepository;
         this.rotationEngine = rotationEngine;
         this.rotationHistoryStore = rotationHistoryStore;
     }
 
-    /**
-     * Only competition organizers/admins may trigger schedule generation —
-     * this mutates the official calendar seen by every team.
-     */
     @PreAuthorize("hasAnyRole('ADMIN', 'ORGANIZER')")
     @Transactional
     public ScheduleRound generate(GenerateRoundCommand command) {
-        return generate(command.seasonId(), command.weekNumber(), command.teamProfiles(),
-                command.openDays(), command.openHours(), command.availableFieldIds());
-    }
+        ScheduleValidator.validateWeekNumber(command.weekNumber());
+        ScheduleValidator.validateTeamProfiles(command.teamProfiles());
+        validateFieldSlots(command.fieldSlots());
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORGANIZER')")
-    @Transactional
-    public ScheduleRound generate(UUID seasonId, int weekNumber, List<TeamScheduleProfile> teamProfiles,
-                                   Set<DayOfWeek> openDaysThisRound, Set<LocalTime> openHoursThisRound,
-                                   List<UUID> availableFieldIds) {
-        ScheduleValidator.validateWeekNumber(weekNumber);
-        ScheduleValidator.validateTeamProfiles(teamProfiles);
-        ScheduleValidator.validateOpenDays(openDaysThisRound);
-        ScheduleValidator.validateOpenHours(openHoursThisRound);
-        ScheduleValidator.validateFieldIds(availableFieldIds);
-
-        if (scheduleRoundRepository.existsBySeasonIdAndWeekNumber(seasonId, weekNumber)) {
-            throw new ScheduleRoundAlreadyExistsException(seasonId, weekNumber);
+        if (scheduleRoundRepository.existsBySeasonIdAndWeekNumber(command.seasonId(), command.weekNumber())) {
+            throw new ScheduleRoundAlreadyExistsException(command.seasonId(), command.weekNumber());
         }
 
-        Map<UUID, TeamRotationHistory> historiesByTeam = new LinkedHashMap<>();
-        for (TeamScheduleProfile profile : teamProfiles) {
-            historiesByTeam.put(profile.getTeamId(), rotationHistoryStore.getOrCreate(profile.getTeamId()));
+        Map<UUID, TeamRotationHistory> histories = new LinkedHashMap<>();
+        for (TeamScheduleProfile profile : command.teamProfiles()) {
+            histories.put(profile.getTeamId(), rotationHistoryStore.getOrCreate(profile.getTeamId()));
         }
 
-        List<TeamAssignment> assignments = assignTeams(
-                teamProfiles, historiesByTeam, openDaysThisRound, openHoursThisRound, availableFieldIds);
-
-        ScheduleRound round = ScheduleRound.createDraft(seasonId, weekNumber, assignments);
+        List<TeamAssignment> assignments = assignTeams(command, histories);
+        ScheduleRound round = ScheduleRound.createDraft(command.seasonId(), command.weekNumber(), assignments);
         ScheduleRound saved = scheduleRoundRepository.save(round);
 
         for (TeamAssignment assignment : assignments) {
-            TeamRotationHistory history = historiesByTeam.get(assignment.teamId());
+            TeamRotationHistory history = histories.get(assignment.teamId());
             history.record(assignment.slot());
             rotationHistoryStore.save(history);
         }
@@ -73,51 +55,75 @@ public class GenerateScheduleForSeasonService {
         return saved;
     }
 
-    private List<TeamAssignment> assignTeams(List<TeamScheduleProfile> teamProfiles,
-                                              Map<UUID, TeamRotationHistory> historiesByTeam,
-                                              Set<DayOfWeek> openDays, Set<LocalTime> openHours,
-                                              List<UUID> fieldIds) {
+    private void validateFieldSlots(List<FieldScheduleSlot> slots) {
+        if (slots == null || slots.isEmpty()) {
+            throw new com.orchedule.scheduling.application.exception.InvalidScheduleException(
+                    "At least one field slot must be available for this round");
+        }
+    }
+
+    private List<TeamAssignment> assignTeams(GenerateRoundCommand command,
+                                             Map<UUID, TeamRotationHistory> histories) {
         List<TeamAssignment> assignments = new ArrayList<>();
-        Set<String> occupiedSlots = new HashSet<>();
-        int fieldIndex = 0;
+        Set<String> occupied = new HashSet<>();
+        int rotationIndex = 0;
 
-        for (TeamScheduleProfile profile : teamProfiles) {
-            TeamRotationHistory history = historiesByTeam.get(profile.getTeamId());
+        for (TeamScheduleProfile profile : command.teamProfiles()) {
+            TeamRotationHistory history = histories.get(profile.getTeamId());
+            List<FieldScheduleSlot> candidates = validSlots(command.fieldSlots(), profile);
 
-            DayOfWeek day;
-            LocalTime hour;
-            try {
-                day = rotationEngine.selectDay(profile, history, openDays);
-                hour = rotationEngine.selectHour(profile, history, openHours);
-            } catch (IllegalStateException ex) {
+            if (candidates.isEmpty()) {
                 throw new ScheduleGenerationException(
-                        "Could not assign a slot for team " + profile.getTeamId() + ": " + ex.getMessage());
+                        "No compatible field slot for team " + profile.getTeamId());
             }
 
-            UUID fieldId = findAvailableField(fieldIds, fieldIndex, day, hour, occupiedSlots, profile.getTeamId());
-            fieldIndex++;
+            FieldScheduleSlot slot = selectSlot(profile, history, candidates, occupied, rotationIndex);
+            rotationIndex++;
 
-            occupiedSlots.add(slotKey(day, hour, fieldId));
-            assignments.add(new TeamAssignment(profile.getTeamId(), new ScheduleSlot(day, hour, fieldId)));
+            occupied.add(slotKey(slot));
+            assignments.add(new TeamAssignment(
+                    profile.getTeamId(),
+                    new ScheduleSlot(slot.day(), slot.hour(), slot.fieldId())));
         }
 
         return assignments;
     }
 
-    private UUID findAvailableField(List<UUID> fieldIds, int startIndex, DayOfWeek day, LocalTime hour,
-                                     Set<String> occupiedSlots, UUID teamId) {
-        for (int offset = 0; offset < fieldIds.size(); offset++) {
-            UUID candidate = fieldIds.get((startIndex + offset) % fieldIds.size());
-            if (!occupiedSlots.contains(slotKey(day, hour, candidate))) {
+    private List<FieldScheduleSlot> validSlots(List<FieldScheduleSlot> slots, TeamScheduleProfile profile) {
+        Set<DayOfWeek> days = new HashSet<>(profile.daysWithPriority(SlotPriority.FIRST));
+        days.addAll(profile.daysWithPriority(SlotPriority.SECOND));
+
+        Set<java.time.LocalTime> hours = new HashSet<>(profile.hoursWithPriority(SlotPriority.FIRST));
+        hours.addAll(profile.hoursWithPriority(SlotPriority.SECOND));
+
+        return slots.stream()
+                .filter(slot -> days.contains(slot.day()) && hours.contains(slot.hour()))
+                .toList();
+    }
+
+    private FieldScheduleSlot selectSlot(TeamScheduleProfile profile,
+                                         TeamRotationHistory history,
+                                         List<FieldScheduleSlot> candidates,
+                                         Set<String> occupied,
+                                         int rotationIndex) {
+        List<FieldScheduleSlot> preferred = candidates.stream()
+                .filter(slot -> !history.isDayOverused(slot.day()) && !history.isHourOverused(slot.hour()))
+                .toList();
+
+        List<FieldScheduleSlot> ordered = preferred.isEmpty() ? candidates : preferred;
+
+        for (int offset = 0; offset < ordered.size(); offset++) {
+            FieldScheduleSlot candidate = ordered.get((rotationIndex + offset) % ordered.size());
+            if (!occupied.contains(slotKey(candidate))) {
                 return candidate;
             }
         }
+
         throw new ScheduleGenerationException(
-                "No available field left for team " + teamId + " at " + day + " " + hour
-                        + " — all fields are already occupied for this slot");
+                "No available field slot for team " + profile.getTeamId());
     }
 
-    private String slotKey(DayOfWeek day, LocalTime hour, UUID fieldId) {
-        return day.name() + "|" + hour + "|" + fieldId;
+    private String slotKey(FieldScheduleSlot slot) {
+        return slot.day().name() + "|" + slot.hour() + "|" + slot.fieldId();
     }
 }

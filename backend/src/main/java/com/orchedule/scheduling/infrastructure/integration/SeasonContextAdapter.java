@@ -5,41 +5,45 @@ import com.orchedule.competition.domain.Competition;
 import com.orchedule.competition.domain.CompetitionStatus;
 import com.orchedule.scheduling.application.exception.InvalidScheduleException;
 import com.orchedule.scheduling.application.port.SeasonContextPort;
+import com.orchedule.season.api.dto.SeasonResponse;
+import com.orchedule.season.application.GetSeasonService;
+import com.orchedule.season.domain.SeasonStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
-/**
- * ACL adapter abstracting the competition module. NOTE: in the current
- * data model a "season" is represented directly by a Competition
- * aggregate (see the earlier competition module discussion) — if/when a
- * dedicated Season entity is introduced, only this adapter needs to
- * change; scheduling's port contract stays stable.
- */
+/** Resolves the real season-to-competition relationship for scheduling. */
 @Component
 public class SeasonContextAdapter implements SeasonContextPort {
 
+    private final GetSeasonService getSeasonService;
     private final GetCompetitionService getCompetitionService;
 
-    public SeasonContextAdapter(GetCompetitionService getCompetitionService) {
+    public SeasonContextAdapter(GetSeasonService getSeasonService,
+                                GetCompetitionService getCompetitionService) {
+        this.getSeasonService = getSeasonService;
         this.getCompetitionService = getCompetitionService;
     }
 
     @Override
     public UUID getCompetitionIdForSeason(UUID seasonId) {
-        // 1:1 mapping today (season == competition id). Kept as an explicit
-        // method rather than passing seasonId straight through, so this
-        // assumption is documented and isolated to one place.
-        return seasonId;
+        return getSeasonService.getById(seasonId).competitionId();
     }
 
     @Override
     public void assertSeasonIsSchedulable(UUID seasonId) {
-        Competition competition = getCompetitionService.getById(seasonId);
+        SeasonResponse season = getSeasonService.getById(seasonId);
+
+        if (!season.active() || season.status() != SeasonStatus.ACTIVE) {
+            throw new InvalidScheduleException(
+                    "Season " + seasonId + " must be active to generate schedule rounds");
+        }
+
+        Competition competition = getCompetitionService.getById(season.competitionId());
+
         if (competition.getStatus() != CompetitionStatus.ACTIVE) {
             throw new InvalidScheduleException(
-                    "Competition " + seasonId + " is " + competition.getStatus()
-                            + " and cannot generate schedule rounds — it must be ACTIVE");
+                    "Competition " + competition.getId() + " must be active to generate schedule rounds");
         }
     }
 }
