@@ -6,16 +6,20 @@ import com.orchedule.field.domain.FieldWeeklyAvailability;
 import com.orchedule.field.domain.FieldWeeklyAvailabilityRepository;
 import com.orchedule.scheduling.application.exception.InvalidScheduleException;
 import com.orchedule.scheduling.application.port.FieldAvailabilityPort;
+import com.orchedule.scheduling.application.port.FieldScheduleSlot;
 import com.orchedule.scheduling.application.port.FieldSchedulingContext;
 import org.springframework.stereotype.Component;
 
-import java.time.DayOfWeek;
-import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
+/**
+ * Builds the scheduling context from fields enabled for one season week.
+ * Each field contributes only its own opening day/hour combinations.
+ */
 @Component
 public class FieldAvailabilityAdapter implements FieldAvailabilityPort {
 
@@ -23,44 +27,54 @@ public class FieldAvailabilityAdapter implements FieldAvailabilityPort {
     private final FieldWeeklyAvailabilityRepository weeklyAvailabilityRepository;
 
     public FieldAvailabilityAdapter(FieldRepository fieldRepository,
-                                     FieldWeeklyAvailabilityRepository weeklyAvailabilityRepository) {
+                                    FieldWeeklyAvailabilityRepository weeklyAvailabilityRepository) {
         this.fieldRepository = fieldRepository;
         this.weeklyAvailabilityRepository = weeklyAvailabilityRepository;
     }
 
     @Override
-    public FieldSchedulingContext getSchedulingContext(UUID competitionId, UUID seasonId, int weekNumber) {
+    public FieldSchedulingContext getSchedulingContext(UUID competitionId,
+                                                       UUID seasonId,
+                                                       int weekNumber) {
         List<Field> activeFields = fieldRepository.findAllActive();
+
         if (activeFields.isEmpty()) {
             throw new InvalidScheduleException(
                     "No active fields exist — cannot schedule competition " + competitionId);
         }
 
-        Set<UUID> enabledFieldIdsThisWeek = weeklyAvailabilityRepository
+        Set<UUID> enabledFieldIds = weeklyAvailabilityRepository
                 .findBySeasonIdAndWeekNumber(seasonId, weekNumber).stream()
                 .filter(FieldWeeklyAvailability::isEnabled)
                 .map(FieldWeeklyAvailability::getFieldId)
-                .collect(Collectors.toUnmodifiableSet());
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
 
-        List<Field> availableFields = activeFields.stream()
-                .filter(field -> enabledFieldIdsThisWeek.contains(field.getId()))
-                .toList();
-
-        if (availableFields.isEmpty()) {
+        if (enabledFieldIds.isEmpty()) {
             throw new InvalidScheduleException(
-                    "Season " + seasonId + " week " + weekNumber + " has no fields enabled — cannot schedule");
+                    "Season " + seasonId + " week " + weekNumber
+                            + " has no fields enabled — cannot schedule");
         }
 
-        List<UUID> fieldIds = availableFields.stream().map(Field::getId).toList();
+        List<FieldScheduleSlot> slots = new ArrayList<>();
 
-        Set<DayOfWeek> openDays = availableFields.stream()
-                .flatMap(field -> field.getOpenDays().stream())
-                .collect(Collectors.toUnmodifiableSet());
+        for (Field field : activeFields) {
+            if (!enabledFieldIds.contains(field.getId())) {
+                continue;
+            }
 
-        Set<LocalTime> openHours = availableFields.stream()
-                .flatMap(field -> field.getOpenHours().stream())
-                .collect(Collectors.toUnmodifiableSet());
+            for (var day : field.getOpenDays()) {
+                for (var hour : field.getOpenHours()) {
+                    slots.add(new FieldScheduleSlot(field.getId(), day, hour));
+                }
+            }
+        }
 
-        return new FieldSchedulingContext(fieldIds, openDays, openHours);
+        if (slots.isEmpty()) {
+            throw new InvalidScheduleException(
+                    "Season " + seasonId + " week " + weekNumber
+                            + " has no valid field opening slots — cannot schedule");
+        }
+
+        return new FieldSchedulingContext(slots);
     }
 }

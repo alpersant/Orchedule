@@ -4,9 +4,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/venue.dart';
 import 'venue_form_page.dart';
 import 'venues_controller.dart';
+import '../../fields/presentation/venue_fields_page.dart';
 
 class VenuesPage extends ConsumerWidget {
   const VenuesPage({super.key});
+
+  Future<void> _openFields(BuildContext context, Venue venue) async {
+    final id = venue.id;
+    if (id == null || id.isEmpty) { return; }
+    await Navigator.of(context).push<void>(MaterialPageRoute(
+      builder: (_) => VenueFieldsPage(venueId: id, venueName: venue.name,
+        venueActive: venue.active),
+    ));
+  }
 
   Future<void> _openForm(
       BuildContext context, {
@@ -31,7 +41,7 @@ class VenuesPage extends ConsumerWidget {
     if (venueId == null || venueId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('El campo no tiene identificador.'),
+          content: Text('La instalación no tiene identificador.'),
         ),
       );
 
@@ -42,9 +52,9 @@ class VenuesPage extends ConsumerWidget {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Eliminar campo'),
+          title: const Text('Eliminar instalación'),
           content: Text(
-            '¿Quieres eliminar definitivamente el campo '
+            '¿Quieres eliminar definitivamente la instalación '
                 '"${venue.name}"?\n\n'
                 'Esta acción no se puede deshacer.',
           ),
@@ -103,7 +113,7 @@ class VenuesPage extends ConsumerWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          error ?? 'No se ha podido eliminar el campo.',
+          error ?? 'No se ha podido eliminar la instalación.',
         ),
       ),
     );
@@ -115,7 +125,7 @@ class VenuesPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Campos'),
+        title: const Text('Instalaciones'),
         actions: [
           IconButton(
             tooltip: 'Actualizar',
@@ -131,7 +141,7 @@ class VenuesPage extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openForm(context),
         icon: const Icon(Icons.add),
-        label: const Text('Nuevo campo'),
+        label: const Text('Nueva instalación'),
       ),
       body: _body(
         context,
@@ -173,7 +183,7 @@ class VenuesPage extends ConsumerWidget {
     if (state.items.isEmpty) {
       return const Center(
         child: Text(
-          'Todavía no hay campos creados.',
+          'Todavía no hay instalaciones creadas.',
         ),
       );
     }
@@ -206,11 +216,15 @@ class VenuesPage extends ConsumerWidget {
               ),
             ),
             title: Text(venue.name),
-            subtitle: Text(details),
+            subtitle: Text('$details · Pulsa para gestionar campos'),
+            onTap: state.loading ? null : () => _openFields(context, venue),
             trailing: PopupMenuButton<String>(
-              tooltip: 'Acciones del campo',
+              tooltip: 'Acciones de la instalación',
               onSelected: (value) async {
                 switch (value) {
+                  case 'fields':
+                    await _openFields(context, venue);
+
                   case 'edit':
                     await _openForm(
                       context,
@@ -235,6 +249,7 @@ class VenuesPage extends ConsumerWidget {
               },
               itemBuilder: (_) {
                 return [
+                  const PopupMenuItem(value: 'fields', child: Text('Gestionar campos')),
                   const PopupMenuItem(
                     value: 'edit',
                     child: Row(

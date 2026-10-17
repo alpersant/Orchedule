@@ -12,7 +12,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.access.AccessDeniedHandlerImpl;
 
@@ -34,7 +35,7 @@ public class SecurityConfig {
                 )
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(
-                                new Http403ForbiddenEntryPoint()
+                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)
                         )
                         .accessDeniedHandler(
                                 new AccessDeniedHandlerImpl()
@@ -44,8 +45,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**")
                         .permitAll()
 
-                        .requestMatchers("/actuator/**")
+                        .requestMatchers("/actuator/health", "/actuator/health/**")
                         .permitAll()
+
+                        .requestMatchers("/actuator/**")
+                        .hasRole("ADMIN")
 
                         .requestMatchers(
                                 "/api/auth/login",

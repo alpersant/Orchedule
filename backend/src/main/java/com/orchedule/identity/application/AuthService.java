@@ -69,7 +69,7 @@ public class AuthService {
         return issueTokens(user);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponse login(String email, String rawPassword) {
         UserAuthView user = userAuthQuery.findByEmail(normalizeEmail(email))
                 .filter(UserAuthView::active)
@@ -145,7 +145,7 @@ public class AuthService {
     }
 
     private String normalizeEmail(String email) {
-        return email == null ? null : email.trim().toLowerCase();
+        return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
     }
 
     private Role toRole(String role) {

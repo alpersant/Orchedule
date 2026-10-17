@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.time.OffsetDateTime;
 import java.util.stream.Collectors;
 
-@RestControllerAdvice
+@RestControllerAdvice(assignableTypes = com.orchedule.identity.api.AuthController.class)
 public class RestExceptionHandler {
 
     @ExceptionHandler(AlreadyExistsException.class)
