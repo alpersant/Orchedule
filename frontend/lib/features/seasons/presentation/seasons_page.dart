@@ -201,6 +201,10 @@ class _SeasonsPageState extends ConsumerState<SeasonsPage> {
     context.push('/seasons/${season.id}/availability');
   }
 
+  void _openReadiness(Season season) {
+    context.push('/seasons/${season.id}/readiness');
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(seasonsProvider);
@@ -419,6 +423,9 @@ class _SeasonsPageState extends ConsumerState<SeasonsPage> {
                           case 'availability':
                             _openAvailability(season);
                             break;
+                          case 'readiness':
+                            _openReadiness(season);
+                            break;
                           case 'activate':
                             _transition(season, true);
                             break;
@@ -439,6 +446,11 @@ class _SeasonsPageState extends ConsumerState<SeasonsPage> {
                           value: 'availability',
                           child: Text('Disponibilidad semanal'),
                         ),
+                        if (season.status == SeasonStatus.active)
+                          const PopupMenuItem(
+                            value: 'readiness',
+                            child: Text('Preparar jornada'),
+                          ),
                         if (season.status != SeasonStatus.closed &&
                             !(season.status == SeasonStatus.active &&
                                 season.active))
