@@ -1,0 +1,12 @@
+package com.orchedule.scheduling.domain;
+
+public enum ReadinessCode {
+    SEASON_NOT_ACTIVE,
+    COMPETITION_NOT_ACTIVE,
+    NO_TEAMS,
+    INVALID_TEAM_PREFERENCES,
+    NO_AVAILABLE_FIELDS,
+    INSUFFICIENT_CAPACITY,
+    ROUND_ALREADY_EXISTS,
+    ROUND_CANCELLED
+}

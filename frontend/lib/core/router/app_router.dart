@@ -9,6 +9,7 @@ import '../../features/auth/presentation/login_page.dart';
 import '../../features/competitions/presentation/pages/competitions_page.dart';
 import '../../features/dashboard/presentation/dashboard_page.dart';
 import '../../features/field_weekly_availability/presentation/pages/field_weekly_availability_page.dart';
+import '../../features/schedule_readiness/presentation/pages/round_readiness_page.dart';
 import '../../features/schedules/presentation/schedules_page.dart';
 import '../../features/seasons/presentation/seasons_page.dart';
 import '../../features/teams/presentation/teams_page.dart';
@@ -40,8 +41,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/login',
-        builder: (_, __) => const LoginPage(),
+        builder: (context, state) => const LoginPage(),
       ),
+
       ShellRoute(
         builder: (context, state, child) {
           return AppShell(
@@ -52,40 +54,56 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: '/',
-            builder: (_, __) => const DashboardPage(),
+            builder: (context, state) => const DashboardPage(),
           ),
+
           GoRoute(
             path: '/competitions',
-            builder: (_, __) => const CompetitionsPage(),
+            builder: (context, state) => const CompetitionsPage(),
           ),
+
           GoRoute(
             path: '/teams',
-            builder: (_, __) => const TeamsPage(),
+            builder: (context, state) => const TeamsPage(),
           ),
+
           GoRoute(
             path: '/venues',
-            builder: (_, __) => const VenuesPage(),
+            builder: (context, state) => const VenuesPage(),
           ),
+
           GoRoute(
             path: '/seasons',
-            builder: (_, __) => const SeasonsPage(),
+            builder: (context, state) => const SeasonsPage(),
           ),
+
           GoRoute(
             path: '/schedules',
-            builder: (_, __) => const SchedulesPage(),
+            builder: (context, state) => const SchedulesPage(),
           ),
+
           GoRoute(
             path: '/audit',
-            builder: (_, __) => const AuditPage(),
+            builder: (context, state) => const AuditPage(),
           ),
         ],
       ),
+
       GoRoute(
         path: '/seasons/:seasonId/availability',
         builder: (context, state) {
           final seasonId = state.pathParameters['seasonId']!;
 
           return FieldWeeklyAvailabilityPage(seasonId: seasonId);
+        },
+      ),
+
+      GoRoute(
+        path: '/seasons/:seasonId/readiness',
+        builder: (context, state) {
+          final seasonId = state.pathParameters['seasonId']!;
+
+          return RoundReadinessPage(seasonId: seasonId);
         },
       ),
     ],
