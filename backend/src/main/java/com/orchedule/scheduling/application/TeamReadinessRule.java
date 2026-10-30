@@ -1,8 +1,10 @@
 package com.orchedule.scheduling.application;
 
+
 import com.orchedule.scheduling.domain.ReadinessCode;
 import com.orchedule.scheduling.domain.ReadinessSeverity;
 import com.orchedule.scheduling.domain.RoundReadinessIssue;
+import com.orchedule.scheduling.domain.SlotPriority;
 import com.orchedule.scheduling.domain.TeamScheduleProfile;
 import org.springframework.stereotype.Component;
 
@@ -13,8 +15,12 @@ import java.util.List;
 public class TeamReadinessRule implements RoundReadinessPolicy {
 
     @Override
-    public List<RoundReadinessIssue> validate(RoundReadinessContext context, int weekNumber) {
+    public List<RoundReadinessIssue> validate(
+            RoundReadinessContext context,
+            int weekNumber
+    ) {
         List<RoundReadinessIssue> issues = new ArrayList<>();
+
         if (context.teamProfiles().isEmpty()) {
             issues.add(new RoundReadinessIssue(
                     ReadinessCode.NO_TEAMS,
@@ -28,7 +34,15 @@ public class TeamReadinessRule implements RoundReadinessPolicy {
         }
 
         for (TeamScheduleProfile profile : context.teamProfiles()) {
-            if (profile.daysWithPriority(null).isEmpty() || profile.hoursWithPriority(null).isEmpty()) {
+            boolean hasDays =
+                    !profile.daysWithPriority(SlotPriority.FIRST).isEmpty()
+                            || !profile.daysWithPriority(SlotPriority.SECOND).isEmpty();
+
+            boolean hasHours =
+                    !profile.hoursWithPriority(SlotPriority.FIRST).isEmpty()
+                            || !profile.hoursWithPriority(SlotPriority.SECOND).isEmpty();
+
+            if (!hasDays || !hasHours) {
                 issues.add(new RoundReadinessIssue(
                         ReadinessCode.INVALID_TEAM_PREFERENCES,
                         ReadinessSeverity.BLOCKER,
@@ -39,6 +53,7 @@ public class TeamReadinessRule implements RoundReadinessPolicy {
                 ));
             }
         }
+
         return issues;
     }
 }
