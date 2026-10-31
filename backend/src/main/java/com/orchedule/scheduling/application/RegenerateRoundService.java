@@ -16,13 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
-/**
- * Regenerates an existing cancelled schedule round using the current season context.
- *
- * <p>This use case does not accept team profiles, field identifiers, days or hours
- * from the client. All scheduling inputs are resolved through the ACL to prevent
- * callers from injecting inconsistent or unauthorized data.</p>
- */
 @Service
 public class RegenerateRoundService {
 
