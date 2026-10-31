@@ -14,7 +14,7 @@ import java.util.UUID;
 /** Assembles scheduling inputs through narrow ACL ports. */
 @Component
 public class ScheduleInputAssembler {
-
+    @Qualifier("schedulingTeamPreferencesAdapter")
     private final TeamPreferencesPort teamPreferencesPort;
     private final FieldAvailabilityPort fieldAvailabilityPort;
     private final SeasonContextPort seasonContextPort;

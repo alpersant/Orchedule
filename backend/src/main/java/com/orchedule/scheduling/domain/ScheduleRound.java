@@ -67,6 +67,33 @@ public class ScheduleRound {
         touch();
     }
 
+    /**
+     * Replaces the assignments of a cancelled round and returns it to DRAFT.
+     *
+     * <p>This supports regeneration without violating the unique constraint
+     * on (seasonId, weekNumber).</p>
+     */
+    public ScheduleRound replaceAssignmentsAndReactivate(List<TeamAssignment> newAssignments) {
+        if (status != ScheduleRoundStatus.CANCELLED) {
+            throw new IllegalStateException(
+                    "Only a cancelled round can be regenerated"
+            );
+        }
+
+        if (newAssignments == null || newAssignments.isEmpty()) {
+            throw new InvalidScheduleException(
+                    "A schedule round must contain at least one assignment"
+            );
+        }
+
+        this.assignments.clear();
+        this.assignments.addAll(newAssignments);
+        this.status = ScheduleRoundStatus.DRAFT;
+        touch();
+
+        return this;
+    }
+
     private void touch() {
         this.updatedAt = OffsetDateTime.now();
     }
