@@ -423,6 +423,9 @@ class _SeasonsPageState extends ConsumerState<SeasonsPage> {
                           case 'availability':
                             _openAvailability(season);
                             break;
+                          case 'schedule':
+                            context.pushNamed('season-schedule', pathParameters: {'seasonId': season.id});
+                            break;
                           case 'readiness':
                             _openReadiness(season);
                             break;
@@ -463,6 +466,10 @@ class _SeasonsPageState extends ConsumerState<SeasonsPage> {
                             value: 'close',
                             child: Text('Cerrar'),
                           ),
+                        const PopupMenuItem(
+                          value: 'schedule',
+                          child: Text('Calendario de partidos'),
+                        ),
                         const PopupMenuDivider(),
                         const PopupMenuItem(
                           value: 'delete',
