@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,21 +9,20 @@ import '../../features/competitions/presentation/pages/competitions_page.dart';
 import '../../features/dashboard/presentation/dashboard_page.dart';
 import '../../features/field_weekly_availability/presentation/pages/field_weekly_availability_page.dart';
 import '../../features/schedule_readiness/presentation/pages/round_readiness_page.dart';
-import '../../features/schedule_round/presentation/pages/schedule_round_page.dart';
 import '../../features/schedules/presentation/schedules_page.dart';
 import '../../features/seasons/presentation/seasons_page.dart';
 import '../../features/teams/presentation/teams_page.dart';
 import '../../features/venues/presentation/venues_page.dart';
+import '../../features/schedule_round/presentation/pages/schedule_round_page.dart';
 import '../layout/app_shell.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authProvider);
 
-  return GoRouter(
+  final router = GoRouter(
     initialLocation: '/',
     redirect: (context, state) {
-      final location = state.matchedLocation;
-      final isLogin = location == '/login';
+      final isLogin = state.matchedLocation == '/login';
 
       if (auth.status == AuthStatus.unknown) {
         return null;
@@ -57,48 +55,53 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: '/',
-            name: 'dashboard',
+        name: 'dashboard',
             builder: (context, state) => const DashboardPage(),
           ),
 
           GoRoute(
             path: '/competitions',
-            name: 'competitions',
+        name: 'competitions',
             builder: (context, state) => const CompetitionsPage(),
           ),
 
           GoRoute(
             path: '/teams',
-            name: 'teams',
+        name: 'teams',
             builder: (context, state) => const TeamsPage(),
           ),
 
           GoRoute(
             path: '/venues',
-            name: 'venues',
+        name: 'venues',
             builder: (context, state) => const VenuesPage(),
           ),
 
           GoRoute(
             path: '/seasons',
-            name: 'seasons',
+        name: 'seasons',
             builder: (context, state) => const SeasonsPage(),
           ),
 
           GoRoute(
             path: '/schedules',
-            name: 'schedules',
+        name: 'schedules',
             builder: (context, state) => const SchedulesPage(),
           ),
 
           GoRoute(
             path: '/audit',
-            name: 'audit',
+        name: 'audit',
             builder: (context, state) => const AuditPage(),
           ),
         ],
       ),
 
+      GoRoute(
+        path: '/seasons/:seasonId/schedule',
+        name: 'season-schedule',
+        builder: (context, state) => ScheduleRoundPage(seasonId: state.pathParameters['seasonId']!),
+      ),
       GoRoute(
         path: '/seasons/:seasonId/availability',
         name: 'season-availability',
@@ -118,16 +121,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return RoundReadinessPage(seasonId: seasonId);
         },
       ),
-
-      GoRoute(
-        path: '/seasons/:seasonId/schedule',
-        name: 'season-schedule',
-        builder: (context, state) {
-          final seasonId = state.pathParameters['seasonId']!;
-
-          return ScheduleRoundPage(seasonId: seasonId);
-        },
-      ),
     ],
   );
+  ref.onDispose(router.dispose);
+  return router;
 });
