@@ -67,7 +67,7 @@ public class PlanningService {
             game.put("scheduled_at",ts.toInstant().toString());
         }
         result.put("games",games);result.put("fairness",fairness(season,zone));
-        result.put("audit",db.queryForList("SELECT action,actor,created_at FROM fixture_audit WHERE season_id=:s ORDER BY created_at DESC LIMIT 100",p));
+        result.put("audit",db.queryForList("SELECT a.action,a.actor,a.created_at,a.operation,a.result,a.detail,             COALESCE(u.full_name,'Usuario no disponible') AS actor_name             FROM fixture_audit a LEFT JOIN app_user u ON u.id::text=a.actor             WHERE a.season_id=:s ORDER BY a.created_at DESC,a.id DESC LIMIT 100",p));
         return result;
     }
     @Transactional
@@ -299,3 +299,4 @@ public class PlanningService {
         return new ArrayList<>(report.values());
     }
 }
+

@@ -102,8 +102,8 @@ public class PartialPlanningRepository {
     public void saveDraft(Round r,List<Game> games,Map<UUID,PartialPlanningEngine.Slot> assigned,Map<UUID,Issue> issues,boolean provisional,boolean limited){
         List<SqlParameterSource> updates=new ArrayList<>();
         for(Game g:games){var slot=assigned.get(g.id());updates.add(new MapSqlParameterSource().addValue("id",g.id()).addValue("r",r.id()).addValue("f",slot==null?null:slot.field()).addValue("at",slot==null?null:Timestamp.from(slot.at())));}
-        db.batchUpdate("UPDATE fixture_game SET field_id=:f,scheduled_at=:at WHERE id=:id AND round_id=:r",updates.toArray(SqlParameterSource[]::new));
-        db.update("DELETE FROM fixture_game_issue WHERE game_id IN(SELECT id FROM fixture_game WHERE round_id=:r)",Map.of("r",r.id()));
+        db.batchUpdate("UPDATE fixture_game SET field_id=:f,scheduled_at=:at WHERE id=:id AND round_id=:r AND NOT deferred AND confirmation_status<>'CONFIRMED'",updates.toArray(SqlParameterSource[]::new));
+        db.update("DELETE FROM fixture_game_issue WHERE game_id IN(SELECT id FROM fixture_game WHERE round_id=:r AND NOT deferred)",Map.of("r",r.id()));
         List<SqlParameterSource> pending=new ArrayList<>();
         issues.forEach((id,issue)->{Counts c=issue.counts();pending.add(new MapSqlParameterSource().addValue("id",id).addValue("code",issue.code()).addValue("detail",issue.detail()).addValue("total",c.total()).addValue("dates",c.dates()).addValue("compatible",c.compatible()).addValue("rotation",c.rotation()).addValue("free",c.free()));});
         if(!pending.isEmpty())db.batchUpdate("INSERT INTO fixture_game_issue(game_id,code,detail,total_slots,date_slots,compatible_slots,rotation_slots,free_slots) VALUES(:id,:code,:detail,:total,:dates,:compatible,:rotation,:free)",pending.toArray(SqlParameterSource[]::new));
@@ -127,7 +127,25 @@ public class PartialPlanningRepository {
     public void audit(Round r,String action){
         var auth=SecurityContextHolder.getContext().getAuthentication();if(auth==null||!auth.isAuthenticated())throw new AccessDeniedException("Autenticación requerida");
         String actor=auth.getName();try{UUID.fromString(actor);}catch(IllegalArgumentException e){throw new IllegalStateException("La identidad de auditoría debe ser el UUID autenticado");}
-        db.update("INSERT INTO fixture_audit(id,season_id,action,actor) VALUES(:id,:s,:a,:actor)",Map.of("id",UUID.randomUUID(),"s",r.season(),"a",action+"_"+r.number(),"actor",actor));
+        db.update("""
+            INSERT INTO fixture_audit(id,season_id,action,actor,result,detail)
+            SELECT :id,:s,:a,:actor,'SUCCESS',
+                count(*) FILTER (WHERE scheduled_at IS NOT NULL AND field_id IS NOT NULL)::text
+                || ' partidos con horario; ' ||
+                count(*) FILTER (WHERE scheduled_at IS NULL OR field_id IS NULL)::text || ' pendientes. Estado de jornada: '
+                || (SELECT status FROM fixture_round WHERE id=:r)
+            FROM fixture_game WHERE round_id=:r
+            """,Map.of("id",UUID.randomUUID(),"s",r.season(),"r",r.id(),"a",action+"_"+r.number(),"actor",actor));
+    }
+    public boolean isIndividuallyConfirmed(UUID game){
+        return Boolean.TRUE.equals(db.queryForObject("SELECT confirmation_status='CONFIRMED' FROM fixture_game WHERE id=:g",Map.of("g",game),Boolean.class));
+    }
+    public boolean isDeferred(UUID game){
+        return Boolean.TRUE.equals(db.queryForObject("SELECT deferred FROM fixture_game WHERE id=:g",Map.of("g",game),Boolean.class));
+    }
+    public boolean hasConfirmedGames(Round r){
+        return Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS(SELECT 1 FROM fixture_game WHERE round_id=:r AND confirmation_status='CONFIRMED')",Map.of("r",r.id()),Boolean.class));
     }
     public List<Map<String,Object>> issues(UUID season){return db.queryForList("SELECT i.* FROM fixture_game_issue i JOIN fixture_game g ON g.id=i.game_id JOIN fixture_round r ON r.id=g.round_id WHERE r.season_id=:s",Map.of("s",season));}
 }
+

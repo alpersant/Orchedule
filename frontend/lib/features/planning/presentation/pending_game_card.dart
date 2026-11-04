@@ -23,10 +23,11 @@ class PendingGameCard extends StatelessWidget {
     final label=code=='MISSING_PREFERENCES'?'Revisar equipos':code=='NO_VALID_DATES'?'Revisar fechas':'Revisar campos y horarios';
     final action=code=='MISSING_PREFERENCES'?onTeams:code=='NO_VALID_DATES'?onDates:onFields;
     return Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      Wrap(spacing:12,runSpacing:8,children:[Text('${game.home} — ${game.away}',style:Theme.of(context).textTheme.titleMedium),const Chip(label:Text('Pendiente de horario'))]),
-      const SizedBox(height:8),Text(game.issue?.detail??'Sin horario todavía. Prepara la jornada para buscar una franja.'),
+      Wrap(spacing:12,runSpacing:8,children:[Text('${game.home} — ${game.away}',style:Theme.of(context).textTheme.titleMedium),Chip(label:Text(game.deferred?'Pendiente por decisión del organizador':'Pendiente de horario'))]),
+      const SizedBox(height:8),Text(game.deferred?(game.deferredReason??'Puedes retomarlo más adelante sin bloquear otras jornadas.'):(game.issue?.detail??'Sin horario todavía. Prepara la jornada para buscar una franja.')),
       const SizedBox(height:12),Wrap(spacing:8,runSpacing:4,children:[TextButton(onPressed:disabled?null:()=>details(context),child:const Text('Ver diagnóstico')),
         OutlinedButton(onPressed:disabled?null:action,child:Text(label))]),
     ])));
   }
 }
+

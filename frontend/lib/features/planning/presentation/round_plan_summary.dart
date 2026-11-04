@@ -18,7 +18,7 @@ class RoundPlanSummary extends StatelessWidget {
       if(cancelled)const Text('Los horarios mostrados son históricos y sus reservas están liberadas.'),
       if(round.historyProvisional&&draft)const Padding(padding:EdgeInsets.only(top:8),child:Text('Borrador provisional: las jornadas anteriores todavía no están completas o su histórico debe revalidarse. Puedes seguir preparando partidos.')),
       if(round.searchLimited)const Padding(padding:EdgeInsets.only(top:8),child:Text('Se alcanzó el límite de búsqueda. Se ha guardado la propuesta válida encontrada; no es una prueba de que los pendientes sean imposibles.')),
-      if(draft&&round.pendingCount>0)const Padding(padding:EdgeInsets.only(top:8),child:Text('La jornada completa no se puede confirmar hasta resolver los pendientes. Los partidos asignados no se publican todavía.')),
+      if(draft&&round.pendingCount>0)const Padding(padding:EdgeInsets.only(top:8),child:Text('La jornada completa no se puede confirmar hasta resolver los pendientes. Puedes seguir preparando otras jornadas; el borrador queda guardado.')),
       if(draft&&round.earlierIncomplete)const Padding(padding:EdgeInsets.only(top:8),child:Text('Antes de publicar esta jornada hay que completar y confirmar las anteriores. Preparar sus horarios sí está permitido.')),
       if(!confirmed)...[const SizedBox(height:16),Wrap(spacing:12,runSpacing:8,children:[
         if(round.status=='UNSCHEDULED')FilledButton.icon(onPressed:busy||!canManage?null:onSchedule,icon:const Icon(Icons.auto_awesome),label:const Text('Preparar horarios')),
@@ -31,3 +31,4 @@ class RoundPlanSummary extends StatelessWidget {
     ])));
   }
 }
+

@@ -21,7 +21,7 @@ public class PlanningReadFacade {
             (scheduled?assigned:pending).merge(round,1,Integer::sum);
             game.put("planning_issue",scheduled?null:issues.get(game.get("id").toString()));
         }
-        List<Map<String,Object>> rounds=copyRows(result.get("rounds"));rounds.sort(Comparator.comparingInt(r->((Number)r.get("round_number")).intValue()));
+        List<Map<String,Object>> rounds=copyRows(result.get("rounds"));rounds.sort(Comparator.comparingInt(r->com.orchedule.shared.jdbc.JdbcValues.requiredInt(r, "round_number")));
         boolean earlierIncomplete=false;
         for(var round:rounds){
             String id=round.get("id").toString();int a=assigned.getOrDefault(id,0),p=pending.getOrDefault(id,0);

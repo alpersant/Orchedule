@@ -6,6 +6,9 @@ import '../../../planning/domain/planning_view.dart';
 import '../../../planning/presentation/planning_controller.dart';
 import '../../../planning/presentation/create_calendar_wizard.dart';
 import '../../../planning/presentation/weekly_fields_panel.dart';
+import '../../../planning/presentation/round_plan_summary.dart';
+import '../../../planning/presentation/pending_game_card.dart';
+import '../../../planning/presentation/planning_audit_tile.dart';
 
 final _weekAvailability=FutureProvider.autoDispose.family<List<Map<String,dynamic>>,({String season,int week})>((ref,key)=>ref.watch(planningApiProvider).availability(key.season,key.week));
 class ScheduleRoundPage extends ConsumerStatefulWidget {
@@ -46,7 +49,7 @@ class _ScheduleRoundPageState extends ConsumerState<ScheduleRoundPage>{
   }
   Future<void> act(PlanningRound round,String action) async {
     if(working)return;
-    if(action!='schedule'){
+    if(action!='schedule' && action!='resolve'){
       setState(()=>dialogOpen=true);
       final text=const {'confirm':'Publicarás los horarios. Revisa antes los partidos y campos.',
         'cancel':'Los partidos quedarán cancelados. Se conservarán los enfrentamientos y descansos.',
@@ -57,6 +60,24 @@ class _ScheduleRoundPageState extends ConsumerState<ScheduleRoundPage>{
       if(!mounted)return;setState(()=>dialogOpen=false);if(ok!=true)return;
     }
     await ref.read(planningControllerProvider(widget.seasonId).notifier).action(round,action);
+  }
+  Future<void> setPending(PlanningGame game) async {
+    if(working)return;
+    setState(()=>dialogOpen=true);
+    bool? confirmed;
+    try {
+      confirmed=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
+        title:Text(game.deferred?'Volver a resolver este partido':'Dejar este partido pendiente'),
+        content:Text(game.deferred?'Se incluirá en la próxima búsqueda de horarios.':'Se conservará el enfrentamiento sin horario. No se incluirá en los cálculos automáticos hasta que decidas retomarlo. Puedes continuar con otras jornadas.'),
+        actions:[TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancelar')),
+          FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Confirmar'))]));
+    } finally {if(mounted)setState(()=>dialogOpen=false);}
+    if(confirmed!=true||!mounted)return;
+    final api=ref.read(planningApiProvider);
+    await ref.read(planningControllerProvider(widget.seasonId).notifier).execute(
+      () async {await api.dio.put<dynamic>('/v1/planning/seasons/${Uri.encodeComponent(widget.seasonId)}/games/${Uri.encodeComponent(game.id)}/pending',
+        data:{'pending':!game.deferred,'reason':game.deferred?null:'Pendiente por decisión del organizador'});},
+      game.deferred?'El partido vuelve a estar disponible para resolver.':'Partido dejado pendiente. Puedes continuar con otras jornadas.');
   }
   Future<void> oldReservations(PlanningView plan,Map<String,dynamic> old) async {
     if(working)return;setState(()=>dialogOpen=true);
@@ -134,32 +155,16 @@ class _ScheduleRoundPageState extends ConsumerState<ScheduleRoundPage>{
     ]))),...legacySection(plan,busy)];
     if(round==null)return [const Text('No se encuentra la jornada. Actualiza el calendario.')];
     final games=plan.games.where((g)=>g.round==round.number&&'${g.home} ${g.away} ${g.field??''}'.toLowerCase().contains(filter.toLowerCase())).toList();
-    final earlier=plan.rounds.where((r)=>r.number<round.number&&r.status!='CONFIRMED').toList();
-    final later=plan.rounds.any((r)=>r.number>round.number&&r.status=='CONFIRMED');
+    const later=false;
     final old=plan.legacy.where((r)=>r['week_number']==round.week&&r['status']!='CANCELLED').toList();
-    String title,description,label;VoidCallback? primary;
-    if(round.status=='CONFIRMED'){
-      title='Jornada confirmada';description='Los horarios están publicados.';label=number<plan.rounds.length?'Ir a la siguiente jornada':'Calendario completado';
-      if(number<plan.rounds.length)primary=()=>switchRound(number+1);
-    }else if(earlier.isNotEmpty){
-      title='Primero termina la jornada ${earlier.first.number}';description='Se necesita su histórico para distribuir los horarios de las siguientes jornadas.';label='Ir a jornada ${earlier.first.number}';primary=()=>switchRound(earlier.first.number);
-    }else if(old.isNotEmpty){
-      title='Hay reservas anteriores en esta semana';description='Revísalas antes de planificar los nuevos partidos.';label='Revisar reservas anteriores';primary=()=>oldReservations(plan,old.first);
-    }else if(round.status=='DRAFT'){
-      title='Revisa los horarios antes de confirmar';description='Comprueba rivales, fecha, hora y campo.';label='Confirmar jornada';if(plan.canManage&&!later)primary=()=>act(round,'confirm');
-    }else if(availabilityError){
-      title='No se pudo comprobar la disponibilidad';description='Revisa la conexión y los campos habilitados.';label='Revisar campos';primary=()=>switchTab(2);
-    }else if(loading||enabled==null){
-      title='Consultando campos';description='Comprobando disponibilidad de esta semana.';label='Comprobando…';
-    }else if(enabled==0){
-      title='Elige los campos de esta semana';description='No hay campos habilitados para asignar horarios.';label='Elegir campos y horarios';primary=()=>switchTab(2);
-    }else{
-      title=round.status=='CANCELLED'?'Prepara de nuevo esta jornada':'Los partidos aún no tienen horario';description='Se comprobarán las preferencias de ambos equipos y los campos habilitados.';
-      label=round.status=='CANCELLED'?'Preparar horarios de nuevo':'Asignar horarios';if(plan.canManage&&!later)primary=()=>act(round,round.status=='CANCELLED'?'regenerate':'schedule');
-    }
     return [selector(plan,round,busy),const SizedBox(height:16),Wrap(spacing:12,crossAxisAlignment:WrapCrossAlignment.center,children:[Chip(label:Text(round.label)),Text('Semana ${round.week} · ${planningWeekRange(plan,round.week)}')]),
-      Card(child:Padding(padding:const EdgeInsets.all(20),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(title,style:Theme.of(context).textTheme.titleLarge),const SizedBox(height:8),Text(description),const SizedBox(height:16),
-        Wrap(spacing:12,children:[FilledButton(onPressed:busy?null:primary,child:Text(label)),if(round.status!='CONFIRMED')TextButton(onPressed:busy?null:()=>switchTab(2),child:const Text('Ver campos y horarios'))])]))),
+      if(old.isNotEmpty)Card(child:ListTile(title:const Text('Reservas anteriores activas'),
+        trailing:TextButton(onPressed:busy?null:()=>oldReservations(plan,old.first),child:const Text('Revisar')))),
+      RoundPlanSummary(round:round,busy:busy,canManage:plan.canManage,
+        onSchedule:()=>act(round,'schedule'),onResolve:()=>act(round,'resolve'),
+        onReorganize:()=>act(round,'regenerate'),onConfirm:()=>act(round,'confirm'),onFields:()=>switchTab(2)),
+      if(number<plan.rounds.length)Align(alignment:Alignment.centerRight,child:OutlinedButton.icon(
+        onPressed:busy?null:()=>switchRound(number+1),icon:const Icon(Icons.arrow_forward),label:const Text('Continuar a la siguiente jornada'))),
       if(round.byeName!=null)Card(child:ListTile(leading:const Icon(Icons.hotel_outlined),title:Text('Descansa: ${round.byeName}'),subtitle:const Text('No tiene partido en esta jornada.'))),
       const SizedBox(height:20),Row(children:[Expanded(child:Text('Partidos de la jornada',style:Theme.of(context).textTheme.titleLarge)),
         if(plan.canManage&&round.status!='CANCELLED')PopupMenuButton<String>(enabled:!busy&&!later,tooltip:'Más acciones',onSelected:(v)=>act(round,v),itemBuilder:(_)=>[
@@ -167,6 +172,12 @@ class _ScheduleRoundPageState extends ConsumerState<ScheduleRoundPage>{
       const SizedBox(height:12),TextField(key:ValueKey('filter-$number'),onChanged:(v)=>setState(()=>filter=v),decoration:const InputDecoration(labelText:'Buscar equipo o campo',prefixIcon:Icon(Icons.search),border:OutlineInputBorder())),
       const SizedBox(height:16),if(games.isEmpty)const Text('No hay partidos para esta búsqueda.'),
       ...List.generate(games.length,(i){final g=games[i];final date=g.localStart;
+        if(!g.scheduled)return Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+          PendingGameCard(game:g,disabled:busy,onFields:()=>switchTab(2),onTeams:()=>switchTab(1),onDates:()=>switchTab(2)),
+          if(plan.canManage&&round.status!='CANCELLED')Align(alignment:Alignment.centerRight,child:TextButton.icon(
+            onPressed:busy?null:()=>setPending(g),icon:Icon(g.deferred?Icons.play_arrow:Icons.pause),
+            label:Text(g.deferred?'Retomar y resolver este partido':'Dejar pendiente y continuar'))),
+        ]);
         final heading=date!=null&&(i==0||games[i-1].localStart==null||planningDate(games[i-1].localStart!)!=planningDate(date));
         return Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
           if(heading&&date!=null)Padding(padding:const EdgeInsets.symmetric(vertical:12),child:Text('${planningDay(date)} ${planningDate(date)}',style:Theme.of(context).textTheme.titleMedium)),
@@ -179,7 +190,7 @@ class _ScheduleRoundPageState extends ConsumerState<ScheduleRoundPage>{
       }),const SizedBox(height:24),
       ExpansionTile(title:const Text('Distribución y registro de cambios'),children:[
         ...plan.fairness.map((a)=>ListTile(title:Text('${a['teamName']} · ${a['games']} partidos'),subtitle:Text('Días: ${a['days']}\nHoras: ${a['hours']}\nRachas: día ${a['maxDayStreak']} · hora ${a['maxHourStreak']}'))),
-        ...plan.audit.take(20).map((a)=>ListTile(title:Text(a['action'] as String),subtitle:Text('${a['created_at']} · ${a['actor']}'))),
+        ...plan.audit.take(20).map((a)=>PlanningAuditTile(entry:a)),
       ]),...legacySection(plan,busy),
     ];
   }
@@ -187,3 +198,4 @@ class _ScheduleRoundPageState extends ConsumerState<ScheduleRoundPage>{
     for(final old in plan.legacy)ListTile(title:Text('Semana ${old['week_number']}'),subtitle:Text(old['status']=='CANCELLED'?'Canceladas':'Reservas anteriores activas'),trailing:TextButton(onPressed:busy?null:()=>oldReservations(plan,old),child:const Text('Consultar'))),
   ])];
 }
+

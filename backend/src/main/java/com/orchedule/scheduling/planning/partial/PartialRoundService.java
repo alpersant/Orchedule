@@ -26,8 +26,11 @@ public class PartialRoundService {
         if(!Set.of("schedule","resolve","regenerate","confirm","cancel").contains(action))throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Acción desconocida");
         repo.lock(season);seasons.assertSeasonIsSchedulable(season);Round r=repo.round(season,number);
         if(r.version()!=version)throw conflict("La jornada ha cambiado. Actualiza antes de continuar.");
-        if(repo.laterConfirmed(r))throw conflict("Hay jornadas posteriores confirmadas. Cancélalas en orden inverso antes de modificar esta.");
+        if(repo.laterConfirmed(r) && Set.of("confirm","cancel").contains(action))
+            throw conflict("Hay jornadas posteriores confirmadas. Para confirmar o cancelar esta jornada, revísalas primero. Puedes seguir preparando borradores.");
         List<Game> games=repo.games(r);if(games.isEmpty())throw conflict("La jornada no tiene enfrentamientos");
+        if(repo.hasConfirmedGames(r) && Set.of("cancel","regenerate").contains(action))
+            throw conflict("Hay partidos confirmados individualmente. Esta operación global está protegida; resuelve solo los pendientes.");
         if(action.equals("cancel")){
             if(r.status().equals("CANCELLED"))throw conflict("La jornada ya está cancelada");
             repo.cancelPublished(r);repo.updateStatus(r,"CANCELLED",false,false);repo.audit(r,"CANCEL");return;
@@ -51,11 +54,21 @@ public class PartialRoundService {
         }
         if(action.equals("resolve")&&!r.status().equals("DRAFT"))throw conflict("Resolver pendientes requiere un borrador. Prepara primero la jornada.");
         if(action.equals("schedule")&&!r.status().equals("UNSCHEDULED"))throw conflict("Usa Resolver pendientes para conservar el borrador o Recalcular todo para sustituir horarios.");
+        games=games.stream().filter(g->!repo.isDeferred(g.id())).toList();
+        if(games.isEmpty()){
+            if(r.status().equals("UNSCHEDULED"))repo.updateStatus(r,"DRAFT",repo.earlierIncomplete(r),false);
+            repo.audit(r,"RESOLVE");return;
+        }
         Options options=resolver.resolve(r,games);
         Map<UUID,List<PartialPlanningEngine.Slot>> candidates=new LinkedHashMap<>(options.candidates());
         Map<UUID,PartialPlanningEngine.Slot> fixed=new LinkedHashMap<>();Map<UUID,Issue> invalid=new HashMap<>();
         boolean reorganize=action.equals("regenerate");
-        if(!reorganize)for(Game g:games)if(g.at()!=null&&g.field()!=null){
+        for(Game g:games)if(repo.isIndividuallyConfirmed(g.id())){
+            if(g.at()==null||g.field()==null)throw conflict("Hay un confirmado sin fecha o campo; revisa el partido antes de continuar.");
+            var preserved=new PartialPlanningEngine.Slot(g.field(),g.at(),0);
+            fixed.put(g.id(),preserved);
+        }
+        if(!reorganize)for(Game g:games)if(!fixed.containsKey(g.id())&&g.at()!=null&&g.field()!=null){
             var slot=matching(candidates.getOrDefault(g.id(),List.of()),g);
             if(slot!=null)fixed.put(g.id(),slot);
             else{
@@ -81,3 +94,4 @@ public class PartialRoundService {
         return slots.stream().filter(s->s.field().equals(game.field())&&s.at().equals(game.at())).findFirst().orElse(null);
     }
 }
+
