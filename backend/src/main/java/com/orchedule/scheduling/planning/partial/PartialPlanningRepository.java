@@ -38,8 +38,8 @@ public class PartialPlanningRepository {
             FROM fixture_round r JOIN season s ON s.id=r.season_id JOIN fixture_plan p ON p.season_id=r.season_id
             WHERE r.season_id=:s AND r.round_number=:n FOR UPDATE OF r
             """,Map.of("s",season,"n",number));
-        return new Round((UUID)r.get("id"),season,number,((Number)r.get("week_number")).intValue(),((Number)r.get("version")).longValue(),
-            (String)r.get("status"),LocalDate.parse(r.get("start_date").toString()),LocalDate.parse(r.get("end_date").toString()),ZoneId.of((String)r.get("zone_id")),((Number)r.get("duration_minutes")).intValue());
+        return new Round((UUID)r.get("id"),season,number,com.orchedule.shared.jdbc.JdbcValues.requiredInt(r, "week_number"),com.orchedule.shared.jdbc.JdbcValues.requiredLong(r, "version"),
+            (String)r.get("status"),LocalDate.parse(r.get("start_date").toString()),LocalDate.parse(r.get("end_date").toString()),ZoneId.of((String)r.get("zone_id")),com.orchedule.shared.jdbc.JdbcValues.requiredInt(r, "duration_minutes"));
     }
     public List<Game> games(Round round){
         return db.queryForList("SELECT g.*,h.name AS home_name,a.name AS away_name FROM fixture_game g JOIN team h ON h.id=g.home_team_id JOIN team a ON a.id=g.away_team_id WHERE round_id=:r ORDER BY g.id",Map.of("r",round.id())).stream()
@@ -85,12 +85,12 @@ public class PartialPlanningRepository {
     public List<History> history(Round r){
         List<History> result=new ArrayList<>();
         db.queryForList("SELECT g.home_team_id,g.away_team_id,g.scheduled_at,r.round_number FROM fixture_game g JOIN fixture_round r ON r.id=g.round_id WHERE r.season_id=:s AND r.round_number<:n AND r.status IN ('DRAFT','CONFIRMED') AND g.scheduled_at IS NOT NULL ORDER BY r.round_number DESC",Map.of("s",r.season(),"n",r.number())).forEach(h->{
-            int n=((Number)h.get("round_number")).intValue();Instant at=instant(h.get("scheduled_at"));result.add(new History((UUID)h.get("home_team_id"),at,n));result.add(new History((UUID)h.get("away_team_id"),at,n));
+            int n=com.orchedule.shared.jdbc.JdbcValues.requiredInt(h, "round_number");Instant at=instant(h.get("scheduled_at"));result.add(new History((UUID)h.get("home_team_id"),at,n));result.add(new History((UUID)h.get("away_team_id"),at,n));
         });return result;
     }
     public List<Booking> bookings(Round r,Instant from,Instant to,Set<UUID> teams,Set<UUID> fields,Set<UUID> venues){
         Map<String,Object> p=Map.of("r",r.id(),"from",Timestamp.from(from),"to",Timestamp.from(to),"teams",teams,"fields",fields,"venues",venues);List<Booking> result=new ArrayList<>();
-        db.queryForList("SELECT g.home_team_id,g.away_team_id,g.field_id,g.scheduled_at,f.venue_id,p.duration_minutes FROM fixture_game g JOIN fixture_round r ON r.id=g.round_id JOIN fixture_plan p ON p.season_id=r.season_id JOIN field f ON f.id=g.field_id WHERE r.status IN ('DRAFT','CONFIRMED') AND r.id<>:r AND g.scheduled_at>=:from AND g.scheduled_at<:to AND (g.field_id IN (:fields) OR g.home_team_id IN (:teams) OR g.away_team_id IN (:teams))",p).forEach(g->result.add(new Booking((UUID)g.get("home_team_id"),(UUID)g.get("away_team_id"),(UUID)g.get("field_id"),(UUID)g.get("venue_id"),instant(g.get("scheduled_at")),((Number)g.get("duration_minutes")).intValue())));
+        db.queryForList("SELECT g.home_team_id,g.away_team_id,g.field_id,COALESCE(g.scheduled_at,g.proposed_at) AS scheduled_at,f.venue_id,p.duration_minutes FROM fixture_game g JOIN fixture_round r ON r.id=g.round_id JOIN fixture_plan p ON p.season_id=r.season_id LEFT JOIN field f ON f.id=g.field_id WHERE r.status IN ('DRAFT','CONFIRMED') AND r.id<>:r AND COALESCE(g.scheduled_at,g.proposed_at)>=:from AND COALESCE(g.scheduled_at,g.proposed_at)<:to AND (g.field_id IN (:fields) OR g.home_team_id IN (:teams) OR g.away_team_id IN (:teams))",p).forEach(g->result.add(new Booking((UUID)g.get("home_team_id"),(UUID)g.get("away_team_id"),(UUID)g.get("field_id"),(UUID)g.get("venue_id"),instant(g.get("scheduled_at")),com.orchedule.shared.jdbc.JdbcValues.requiredInt(g, "duration_minutes"))));
         // Legacy matches expose venue but not field/duration: preserve the conservative compatibility policy.
         db.queryForList("SELECT m.* FROM match_game m WHERE m.active AND m.status<>'CANCELLED' AND NOT EXISTS(SELECT 1 FROM fixture_game fg WHERE fg.id=m.id) AND m.scheduled_at>=:from AND m.scheduled_at<:to AND (m.venue_id IN (:venues) OR m.home_team_id IN (:teams) OR m.away_team_id IN (:teams))",p).forEach(g->result.add(new Booking((UUID)g.get("home_team_id"),(UUID)g.get("away_team_id"),null,(UUID)g.get("venue_id"),instant(g.get("scheduled_at")),240)));
         return result;
@@ -102,8 +102,8 @@ public class PartialPlanningRepository {
     public void saveDraft(Round r,List<Game> games,Map<UUID,PartialPlanningEngine.Slot> assigned,Map<UUID,Issue> issues,boolean provisional,boolean limited){
         List<SqlParameterSource> updates=new ArrayList<>();
         for(Game g:games){var slot=assigned.get(g.id());updates.add(new MapSqlParameterSource().addValue("id",g.id()).addValue("r",r.id()).addValue("f",slot==null?null:slot.field()).addValue("at",slot==null?null:Timestamp.from(slot.at())));}
-        db.batchUpdate("UPDATE fixture_game SET field_id=:f,scheduled_at=:at WHERE id=:id AND round_id=:r AND NOT deferred AND confirmation_status<>'CONFIRMED'",updates.toArray(SqlParameterSource[]::new));
-        db.update("DELETE FROM fixture_game_issue WHERE game_id IN(SELECT id FROM fixture_game WHERE round_id=:r AND NOT deferred)",Map.of("r",r.id()));
+        db.batchUpdate("UPDATE fixture_game SET field_id=:f,scheduled_at=:at WHERE id=:id AND round_id=:r AND NOT deferred AND NOT manual_assignment AND confirmation_status<>'CONFIRMED'",updates.toArray(SqlParameterSource[]::new));
+        db.update("DELETE FROM fixture_game_issue WHERE game_id IN(SELECT id FROM fixture_game WHERE round_id=:r AND NOT deferred AND NOT manual_assignment)",Map.of("r",r.id()));
         List<SqlParameterSource> pending=new ArrayList<>();
         issues.forEach((id,issue)->{Counts c=issue.counts();pending.add(new MapSqlParameterSource().addValue("id",id).addValue("code",issue.code()).addValue("detail",issue.detail()).addValue("total",c.total()).addValue("dates",c.dates()).addValue("compatible",c.compatible()).addValue("rotation",c.rotation()).addValue("free",c.free()));});
         if(!pending.isEmpty())db.batchUpdate("INSERT INTO fixture_game_issue(game_id,code,detail,total_slots,date_slots,compatible_slots,rotation_slots,free_slots) VALUES(:id,:code,:detail,:total,:dates,:compatible,:rotation,:free)",pending.toArray(SqlParameterSource[]::new));
@@ -122,6 +122,7 @@ public class PartialPlanningRepository {
             VALUES(:id,:s,:home_team_id,:away_team_id,:venue_id,:scheduled_at,'CONFIRMED',:n,'Fixture planner',true,now(),now())
             ON CONFLICT(id) DO UPDATE SET venue_id=EXCLUDED.venue_id,scheduled_at=EXCLUDED.scheduled_at,status='CONFIRMED',active=true,updated_at=now()
             """,params.toArray(SqlParameterSource[]::new));
+        db.update("UPDATE fixture_game SET confirmation_status='CONFIRMED',confirmed_at=COALESCE(confirmed_at,now()),confirmed_by=COALESCE(confirmed_by,:actor) WHERE round_id=:r",Map.of("r",r.id(),"actor",SecurityContextHolder.getContext().getAuthentication().getName()));
     }
     public void cancelPublished(Round r){db.getJdbcTemplate().execute("SELECT set_config('orchedule.fixture_writer','on',true)");db.update("UPDATE match_game SET status='CANCELLED',active=false,updated_at=now() WHERE id IN(SELECT id FROM fixture_game WHERE round_id=:r)",Map.of("r",r.id()));}
     public void audit(Round r,String action){
@@ -137,6 +138,13 @@ public class PartialPlanningRepository {
             FROM fixture_game WHERE round_id=:r
             """,Map.of("id",UUID.randomUUID(),"s",r.season(),"r",r.id(),"a",action+"_"+r.number(),"actor",actor));
     }
+    public boolean isManual(UUID game){
+        return Boolean.TRUE.equals(db.queryForObject("SELECT manual_assignment FROM fixture_game WHERE id=:g",Map.of("g",game),Boolean.class));
+    }
+    public List<Game> proposals(Round r){
+        return db.queryForList("SELECT id,home_team_id,away_team_id,proposed_at FROM fixture_game WHERE round_id=:r AND proposed_at IS NOT NULL",Map.of("r",r.id())).stream()
+            .map(g->new Game((UUID)g.get("id"),(UUID)g.get("home_team_id"),(UUID)g.get("away_team_id"),"","",null,instant(g.get("proposed_at")))).toList();
+    }
     public boolean isIndividuallyConfirmed(UUID game){
         return Boolean.TRUE.equals(db.queryForObject("SELECT confirmation_status='CONFIRMED' FROM fixture_game WHERE id=:g",Map.of("g",game),Boolean.class));
     }
@@ -148,4 +156,5 @@ public class PartialPlanningRepository {
     }
     public List<Map<String,Object>> issues(UUID season){return db.queryForList("SELECT i.* FROM fixture_game_issue i JOIN fixture_game g ON g.id=i.game_id JOIN fixture_round r ON r.id=g.round_id WHERE r.season_id=:s",Map.of("s",season));}
 }
+
 

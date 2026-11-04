@@ -25,11 +25,11 @@ class PlanningRound {
   String get label=>partial?'Horarios incompletos':const {'UNSCHEDULED':'Sin planificar','DRAFT':'Pendiente de confirmar','CONFIRMED':'Confirmada','CANCELLED':'Cancelada'}[status]??status;
 }
 class PlanningGame {
-  final bool deferred;final String? deferredReason;
+  final bool deferred,manualAssignment,confirmed;final String? deferredReason;
   final String id,homeId,awayId,home,away;final int round;final String? field,fieldId,venue;final DateTime? localStart;final PlanningIssue? issue;
-  const PlanningGame({this.deferred=false,this.deferredReason,required this.id,required this.homeId,required this.awayId,required this.home,required this.away,required this.round,this.field,this.fieldId,this.venue,this.localStart,this.issue});
+  const PlanningGame({this.deferred=false,this.deferredReason,this.manualAssignment=false,this.confirmed=false,required this.id,required this.homeId,required this.awayId,required this.home,required this.away,required this.round,this.field,this.fieldId,this.venue,this.localStart,this.issue});
   bool get scheduled=>localStart!=null&&(fieldId!=null||field!=null);
-  factory PlanningGame.fromJson(Map<String,dynamic> j)=>PlanningGame(deferred:j['deferred']==true,deferredReason:j['deferred_reason'] as String?,id:j['id'] as String,homeId:j['home_team_id'] as String,awayId:j['away_team_id'] as String,
+  factory PlanningGame.fromJson(Map<String,dynamic> j)=>PlanningGame(manualAssignment:j['manual_assignment']==true,confirmed:j['confirmation_status']=='CONFIRMED',deferred:j['deferred']==true,deferredReason:j['deferred_reason'] as String?,id:j['id'] as String,homeId:j['home_team_id'] as String,awayId:j['away_team_id'] as String,
     home:j['home_name'] as String,away:j['away_name'] as String,round:j['round_number'] as int,field:j['field_name'] as String?,fieldId:j['field_id'] as String?,venue:j['venue_name'] as String?,
     localStart:j['local_start']==null?null:DateTime.parse(j['local_start'] as String),issue:j['planning_issue']==null?null:PlanningIssue.fromJson(Map<String,dynamic>.from(j['planning_issue'] as Map)));
 }
@@ -65,4 +65,5 @@ String planningWeekRange(PlanningView p,int week){
 }
 String planningDay(DateTime d)=>const ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'][d.weekday-1];
 String planningHour(DateTime d)=>'${d.hour.toString().padLeft(2,'0')}:${d.minute.toString().padLeft(2,'0')}';
+
 

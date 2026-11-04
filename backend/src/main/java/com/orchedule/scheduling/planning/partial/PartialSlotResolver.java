@@ -31,7 +31,7 @@ public class PartialSlotResolver {
         Map<UUID,List<ZonedDateTime>> history=new HashMap<>();for(History h:repo.history(round))history.computeIfAbsent(h.team(),k->new ArrayList<>()).add(h.at().atZone(round.zone()));
         LocalDate monday=FixtureEngine.monday(round.start(),round.week());
         Instant from=monday.minusDays(1).atStartOfDay(round.zone()).toInstant(),to=monday.plusWeeks(1).atStartOfDay(round.zone()).toInstant();
-        var bookings=repo.bookings(round,from,to,teamIds,fieldIds,venueIds);var blocks=repo.blocks(from,to);
+        var bookings=repo.bookings(round,from,to,teamIds,fieldIds,venueIds);var blocks=repo.blocks(from,to);var proposals=repo.proposals(round);
         Set<String> opening=new HashSet<>();for(var s:slots)opening.add(s.fieldId()+"/"+s.day()+"/"+s.hour());
         Instant now=clock.instant();
         for(Game game:games){
@@ -57,6 +57,10 @@ public class PartialSlotResolver {
                     boolean resource=Objects.equals(b.field(),slot.fieldId())||b.field()==null&&Objects.equals(b.venue(),venues.get(slot.fieldId()))
                         ||List.of(game.home(),game.away()).contains(b.home())||List.of(game.home(),game.away()).contains(b.away());
                     if(resource&&FixtureEngine.overlaps(at,round.duration(),b.at(),b.duration())){occupied=true;break;}
+                }
+                if(!occupied)for(Game proposal:proposals){
+                    boolean affected=!proposal.id().equals(game.id())&&(proposal.home().equals(game.home())||proposal.home().equals(game.away())||proposal.away().equals(game.home())||proposal.away().equals(game.away()));
+                    if(affected&&FixtureEngine.overlaps(at,round.duration(),proposal.at(),round.duration())){occupied=true;break;}
                 }
                 if(occupied)continue;free++;
                 int penalty=preferenceCost(home,slot)+preferenceCost(away,slot);
@@ -86,3 +90,4 @@ public class PartialSlotResolver {
         return new Issue("RESOURCE_CONFLICT","Las franjas compatibles están ocupadas o bloqueadas para un equipo o instalación. Revisa disponibilidad y reservas.",c);
     }
 }
+

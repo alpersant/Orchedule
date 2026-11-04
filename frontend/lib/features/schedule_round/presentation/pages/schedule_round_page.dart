@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../planning/data/planning_api.dart';
+import '../../../planning/data/game_assignment_api.dart';
+import '../../../planning/presentation/game_assignment_dialog.dart';
 import '../../../planning/domain/planning_view.dart';
 import '../../../planning/presentation/planning_controller.dart';
 import '../../../planning/presentation/create_calendar_wizard.dart';
 import '../../../planning/presentation/weekly_fields_panel.dart';
 import '../../../planning/presentation/round_plan_summary.dart';
-import '../../../planning/presentation/pending_game_card.dart';
 import '../../../planning/presentation/planning_audit_tile.dart';
 
 final _weekAvailability=FutureProvider.autoDispose.family<List<Map<String,dynamic>>,({String season,int week})>((ref,key)=>ref.watch(planningApiProvider).availability(key.season,key.week));
@@ -78,6 +79,35 @@ class _ScheduleRoundPageState extends ConsumerState<ScheduleRoundPage>{
       () async {await api.dio.put<dynamic>('/v1/planning/seasons/${Uri.encodeComponent(widget.seasonId)}/games/${Uri.encodeComponent(game.id)}/pending',
         data:{'pending':!game.deferred,'reason':game.deferred?null:'Pendiente por decisión del organizador'});},
       game.deferred?'El partido vuelve a estar disponible para resolver.':'Partido dejado pendiente. Puedes continuar con otras jornadas.');
+  }
+  Future<void> editAssignment(PlanningView plan,PlanningRound round,PlanningGame game) async {
+    if(working||!await discard()||!mounted)return;
+    setState(()=>dialogOpen=true);
+    bool? saved;
+    try {
+      saved=await showDialog<bool>(context:context,barrierDismissible:false,builder:(_)=>GameAssignmentDialog(
+        plan:plan,round:round,game:game,api:GameAssignmentApi(ref.read(planningApiProvider).dio)));
+    } finally {if(mounted)setState(()=>dialogOpen=false);}
+    if(saved==true&&mounted)await ref.read(planningControllerProvider(widget.seasonId).notifier).load();
+  }
+  Future<void> changeAssignment(PlanningView plan,PlanningRound round,PlanningGame game,String action) async {
+    if(working)return;
+    setState(()=>dialogOpen=true);
+    bool? approved;
+    try {
+      approved=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
+        title:Text(action=='confirm'?'Confirmar este partido':action=='unconfirm'?'Retirar confirmación':'Liberar la asignación manual'),
+        content:Text(action=='confirm'?'Se publicará este partido y quedará protegido. Los demás pueden seguir pendientes.':
+          action=='unconfirm'?'Se retirará de publicación, conservando su fecha y campo.':'Se retirarán fecha y campo. El partido podrá volver a planificarse automáticamente.'),
+        actions:[TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancelar')),
+          FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Continuar'))]));
+    } finally {if(mounted)setState(()=>dialogOpen=false);}
+    if(approved!=true||!mounted)return;
+    final api=GameAssignmentApi(ref.read(planningApiProvider).dio);
+    await ref.read(planningControllerProvider(widget.seasonId).notifier).execute(() async {
+      if(action=='clear'){await api.clear(plan.seasonId,game.id,round.version);}
+      else {await api.confirm(plan.seasonId,game.id,round.version,action=='confirm');}
+    },action=='confirm'?'Partido confirmado y publicado.':action=='unconfirm'?'Confirmación retirada.':'Asignación liberada.');
   }
   Future<void> oldReservations(PlanningView plan,Map<String,dynamic> old) async {
     if(working)return;setState(()=>dialogOpen=true);
@@ -171,23 +201,29 @@ class _ScheduleRoundPageState extends ConsumerState<ScheduleRoundPage>{
           if(round.status=='DRAFT')const PopupMenuItem(value:'regenerate',child:Text('Recalcular horarios')),const PopupMenuItem(value:'cancel',child:Text('Cancelar jornada'))])]),
       const SizedBox(height:12),TextField(key:ValueKey('filter-$number'),onChanged:(v)=>setState(()=>filter=v),decoration:const InputDecoration(labelText:'Buscar equipo o campo',prefixIcon:Icon(Icons.search),border:OutlineInputBorder())),
       const SizedBox(height:16),if(games.isEmpty)const Text('No hay partidos para esta búsqueda.'),
-      ...List.generate(games.length,(i){final g=games[i];final date=g.localStart;
-        if(!g.scheduled)return Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
-          PendingGameCard(game:g,disabled:busy,onFields:()=>switchTab(2),onTeams:()=>switchTab(1),onDates:()=>switchTab(2)),
-          if(plan.canManage&&round.status!='CANCELLED')Align(alignment:Alignment.centerRight,child:TextButton.icon(
-            onPressed:busy?null:()=>setPending(g),icon:Icon(g.deferred?Icons.play_arrow:Icons.pause),
-            label:Text(g.deferred?'Retomar y resolver este partido':'Dejar pendiente y continuar'))),
-        ]);
-        final heading=date!=null&&(i==0||games[i-1].localStart==null||planningDate(games[i-1].localStart!)!=planningDate(date));
-        return Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
-          if(heading&&date!=null)Padding(padding:const EdgeInsets.symmetric(vertical:12),child:Text('${planningDay(date)} ${planningDate(date)}',style:Theme.of(context).textTheme.titleMedium)),
-          Card(child:Padding(padding:const EdgeInsets.all(18),child:LayoutBuilder(builder:(context,limits){
-            final names=Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('${g.home} — ${g.away}',style:Theme.of(context).textTheme.titleMedium),const SizedBox(height:8),Text(g.field==null?'Campo pendiente':'${g.field} · ${g.venue??''}')]);
-            final time=Text(date==null?'Sin horario':planningHour(date),style:Theme.of(context).textTheme.titleMedium);
-            return limits.maxWidth<550?Column(crossAxisAlignment:CrossAxisAlignment.start,children:[time,const SizedBox(height:12),names]):Row(crossAxisAlignment:CrossAxisAlignment.start,children:[SizedBox(width:110,child:time),Expanded(child:names)]);
-          }))),
-        ]);
-      }),const SizedBox(height:24),
+      ...games.map((g)=>Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(
+        crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Text('${g.home} — ${g.away}',style:Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height:8),Wrap(spacing:12,runSpacing:8,children:[
+            Chip(label:Text(g.confirmed?'Confirmado':g.deferred?'Pendiente por decisión del organizador':g.localStart==null?'Sin horario':g.fieldId==null?'Provisional · campo pendiente':'Asignado · pendiente de confirmar')),
+            if(g.localStart!=null)Text('${planningDay(g.localStart!)} ${planningDate(g.localStart!)} · ${planningHour(g.localStart!)}'),
+            if(g.field!=null)Text('${g.field} · ${g.venue??''}'),
+          ]),
+          if(g.manualAssignment&&!g.confirmed)const Text('Asignación manual: el cálculo automático la conserva.'),
+          if(g.deferred)Text(g.deferredReason??'Puedes retomarlo más adelante.'),
+          if(g.issue!=null&&!g.scheduled&&!g.manualAssignment)Text(g.issue!.detail),
+          if(plan.canManage&&round.status!='CANCELLED')...[
+            const SizedBox(height:12),Wrap(spacing:8,runSpacing:8,children:[
+              if(!g.confirmed)OutlinedButton.icon(onPressed:busy?null:()=>editAssignment(plan,round,g),
+                icon:const Icon(Icons.edit_calendar),label:Text(g.localStart==null?'Asignar fecha y hora':'Editar fecha / elegir campo')),
+              if(!g.confirmed&&g.scheduled)FilledButton.icon(onPressed:busy?null:()=>changeAssignment(plan,round,g,'confirm'),
+                icon:const Icon(Icons.check),label:const Text('Confirmar este partido')),
+              if(g.confirmed)OutlinedButton(onPressed:busy?null:()=>changeAssignment(plan,round,g,'unconfirm'),child:const Text('Retirar confirmación')),
+              if(!g.confirmed&&(g.localStart!=null||g.manualAssignment))TextButton(onPressed:busy?null:()=>changeAssignment(plan,round,g,'clear'),child:const Text('Liberar asignación')),
+              if(!g.confirmed&&g.localStart==null)TextButton(onPressed:busy?null:()=>setPending(g),child:Text(g.deferred?'Retomar partido':'Dejar pendiente y continuar')),
+            ]),
+          ],
+        ])))),const SizedBox(height:24),
       ExpansionTile(title:const Text('Distribución y registro de cambios'),children:[
         ...plan.fairness.map((a)=>ListTile(title:Text('${a['teamName']} · ${a['games']} partidos'),subtitle:Text('Días: ${a['days']}\nHoras: ${a['hours']}\nRachas: día ${a['maxDayStreak']} · hora ${a['maxHourStreak']}'))),
         ...plan.audit.take(20).map((a)=>PlanningAuditTile(entry:a)),
@@ -198,4 +234,5 @@ class _ScheduleRoundPageState extends ConsumerState<ScheduleRoundPage>{
     for(final old in plan.legacy)ListTile(title:Text('Semana ${old['week_number']}'),subtitle:Text(old['status']=='CANCELLED'?'Canceladas':'Reservas anteriores activas'),trailing:TextButton(onPressed:busy?null:()=>oldReservations(plan,old),child:const Text('Consultar'))),
   ])];
 }
+
 

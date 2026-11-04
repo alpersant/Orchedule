@@ -42,7 +42,7 @@ public class PendingGameApi {
             throw new ResponseStatusException(HttpStatus.CONFLICT,"Un partido confirmado no puede dejarse pendiente");
         if("CANCELLED".equals(game.get("round_status")))
             throw new ResponseStatusException(HttpStatus.CONFLICT,"Prepara de nuevo la jornada cancelada antes de cambiar sus partidos");
-        if(body.pending()&&(game.get("field_id")!=null||game.get("scheduled_at")!=null))
+        if(body.pending()&&(game.get("field_id")!=null||game.get("scheduled_at")!=null||game.get("proposed_at")!=null))
             throw new ResponseStatusException(HttpStatus.CONFLICT,"Esta acción solo aplaza partidos sin horario; no libera reservas existentes");
         var parameters=new MapSqlParameterSource().addValue("g",gameId).addValue("p",body.pending())
             .addValue("reason",body.pending()?body.reason():null);
@@ -58,3 +58,4 @@ public class PendingGameApi {
             .addValue("actor",actor).addValue("detail",body.pending()?body.reason():"Se incluirá en la próxima resolución de pendientes"));
     }
 }
+

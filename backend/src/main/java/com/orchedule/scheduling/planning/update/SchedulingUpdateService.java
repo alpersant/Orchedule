@@ -17,12 +17,15 @@ import java.util.UUID;
 public class SchedulingUpdateService {
     private final SchedulingUpdateRepository repository;
     private final SchedulingRuleValidator validator;
+    private final com.orchedule.scheduling.planning.partial.GameAssignmentService assignments;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public SchedulingUpdateService(
         SchedulingUpdateRepository repository,
-        SchedulingRuleValidator validator
+        SchedulingRuleValidator validator,
+        com.orchedule.scheduling.planning.partial.GameAssignmentService assignments
     ) {
+        this.assignments = assignments;
         this.repository = repository;
         this.validator = validator;
     }
@@ -57,23 +60,15 @@ public class SchedulingUpdateService {
     @Transactional
     @PreAuthorize("hasAnyRole('ADMIN', 'ORGANIZER')")
     public GameConfirmation confirm(UUID gameId) {
-        var seasonId = requireSeason(gameId);
-        validator.assertConfirmable(gameId);
-        var updated = repository.confirm(gameId, actor());
-        history(seasonId, gameId, "CONFIRM_GAME", "Confirmar partido",
-            "SUCCESS", "Partido confirmado individualmente", null, updated);
-        return updated;
+        assignments.confirmLegacy(gameId);
+        return repository.confirmation(gameId);
     }
 
     @Transactional
     @PreAuthorize("hasAnyRole('ADMIN', 'ORGANIZER')")
     public GameConfirmation unconfirm(UUID gameId) {
-        var seasonId = requireSeason(gameId);
-        var previous = repository.confirmation(gameId);
-        var updated = repository.unconfirm(gameId, actor());
-        history(seasonId, gameId, "UNCONFIRM_GAME", "Desconfirmar partido",
-            "SUCCESS", "Partido devuelto a provisional", previous, updated);
-        return updated;
+        assignments.unconfirmLegacy(gameId);
+        return repository.confirmation(gameId);
     }
 
     @Transactional
@@ -172,3 +167,4 @@ public class SchedulingUpdateService {
         return value == null ? null : objectMapper.valueToTree(value);
     }
 }
+

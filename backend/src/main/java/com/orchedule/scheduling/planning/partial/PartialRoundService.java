@@ -12,12 +12,13 @@ import static com.orchedule.scheduling.planning.partial.PlanningData.*;
 @Service
 public class PartialRoundService {
     private final PartialPlanningRepository repo;private final PartialSlotResolver resolver;private final SeasonContextPort seasons;
+    private final GameAssignmentService assignments;
     private final int maxNodes;private final long budgetNanos;
-    public PartialRoundService(PartialPlanningRepository repo,PartialSlotResolver resolver,SeasonContextPort seasons,
+    public PartialRoundService(PartialPlanningRepository repo,PartialSlotResolver resolver,SeasonContextPort seasons,GameAssignmentService assignments,
         @Value("${orchedule.planning.partial.max-nodes:100000}") int maxNodes,
         @Value("${orchedule.planning.partial.search-ms:1000}") long searchMs){
         if(maxNodes<1||maxNodes>1000000||searchMs<1||searchMs>5000)throw new IllegalArgumentException("Límites de planificación parcial inválidos");
-        this.repo=repo;this.resolver=resolver;this.seasons=seasons;this.maxNodes=maxNodes;this.budgetNanos=searchMs*1_000_000;
+        this.assignments=assignments;this.repo=repo;this.resolver=resolver;this.seasons=seasons;this.maxNodes=maxNodes;this.budgetNanos=searchMs*1_000_000;
     }
     private static ResponseStatusException conflict(String text){return new ResponseStatusException(HttpStatus.CONFLICT,text);}
     @Transactional(timeout=8)
@@ -29,7 +30,7 @@ public class PartialRoundService {
         if(repo.laterConfirmed(r) && Set.of("confirm","cancel").contains(action))
             throw conflict("Hay jornadas posteriores confirmadas. Para confirmar o cancelar esta jornada, revísalas primero. Puedes seguir preparando borradores.");
         List<Game> games=repo.games(r);if(games.isEmpty())throw conflict("La jornada no tiene enfrentamientos");
-        if(repo.hasConfirmedGames(r) && Set.of("cancel","regenerate").contains(action))
+        if(repo.hasConfirmedGames(r) && action.equals("cancel"))
             throw conflict("Hay partidos confirmados individualmente. Esta operación global está protegida; resuelve solo los pendientes.");
         if(action.equals("cancel")){
             if(r.status().equals("CANCELLED"))throw conflict("La jornada ya está cancelada");
@@ -50,20 +51,20 @@ public class PartialRoundService {
             }
             // Also validates that conserved assignments do not overlap one another.
             new PartialPlanningEngine().solve(games.stream().map(Game::engine).toList(),options.candidates(),fixed,r.duration(),maxNodes,budgetNanos);
-            repo.publish(r);repo.updateStatus(r,"CONFIRMED",false,false);repo.audit(r,"CONFIRM");return;
+            assignments.validateForPublication(r,games);repo.publish(r);repo.updateStatus(r,"CONFIRMED",false,false);repo.audit(r,"CONFIRM");return;
         }
         if(action.equals("resolve")&&!r.status().equals("DRAFT"))throw conflict("Resolver pendientes requiere un borrador. Prepara primero la jornada.");
         if(action.equals("schedule")&&!r.status().equals("UNSCHEDULED"))throw conflict("Usa Resolver pendientes para conservar el borrador o Recalcular todo para sustituir horarios.");
-        games=games.stream().filter(g->!repo.isDeferred(g.id())).toList();
+        games=games.stream().filter(g->!repo.isDeferred(g.id()) && !(g.field()==null && repo.isManual(g.id()))).toList();
         if(games.isEmpty()){
-            if(r.status().equals("UNSCHEDULED"))repo.updateStatus(r,"DRAFT",repo.earlierIncomplete(r),false);
+            if(!r.status().equals("DRAFT"))repo.updateStatus(r,"DRAFT",repo.earlierIncomplete(r),false);
             repo.audit(r,"RESOLVE");return;
         }
         Options options=resolver.resolve(r,games);
         Map<UUID,List<PartialPlanningEngine.Slot>> candidates=new LinkedHashMap<>(options.candidates());
         Map<UUID,PartialPlanningEngine.Slot> fixed=new LinkedHashMap<>();Map<UUID,Issue> invalid=new HashMap<>();
         boolean reorganize=action.equals("regenerate");
-        for(Game g:games)if(repo.isIndividuallyConfirmed(g.id())){
+        for(Game g:games)if(repo.isIndividuallyConfirmed(g.id()) || repo.isManual(g.id())){
             if(g.at()==null||g.field()==null)throw conflict("Hay un confirmado sin fecha o campo; revisa el partido antes de continuar.");
             var preserved=new PartialPlanningEngine.Slot(g.field(),g.at(),0);
             fixed.put(g.id(),preserved);
@@ -94,4 +95,5 @@ public class PartialRoundService {
         return slots.stream().filter(s->s.field().equals(game.field())&&s.at().equals(game.at())).findFirst().orElse(null);
     }
 }
+
 
