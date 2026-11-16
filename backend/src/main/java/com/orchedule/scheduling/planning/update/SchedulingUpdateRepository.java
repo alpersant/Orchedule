@@ -325,5 +325,6 @@ public class SchedulingUpdateRepository {
             case Instant instant -> instant.atOffset(ZoneOffset.UTC);
             default -> OffsetDateTime.parse(value.toString());
         };
+
     }
 }

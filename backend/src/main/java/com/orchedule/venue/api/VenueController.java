@@ -81,4 +81,15 @@ public class VenueController {
 
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<com.orchedule.shared.pagination.PageResult<VenueResponse>> search(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(getVenueService.search(search, active, page, size));
+    }
+
 }
+

@@ -29,9 +29,11 @@ public class PlanningFieldsApi {
     @PreAuthorize("isAuthenticated()")
     @Transactional(readOnly=true)
     public List<FieldView> read(){
+        var activeFields=fields.findAllActive();
+        var venueIds=activeFields.stream().map(com.orchedule.field.domain.Field::getVenueId).distinct().toList();
         Map<UUID,String> venues=new HashMap<>();
-        db.queryForList("SELECT id,name FROM venue",Map.of()).forEach(v->venues.put((UUID)v.get("id"),(String)v.get("name")));
-        return fields.findAllActive().stream().sorted(Comparator.comparing(com.orchedule.field.domain.Field::getName))
+        if(!venueIds.isEmpty()) db.queryForList("SELECT id,name FROM venue WHERE id IN (:ids)",Map.of("ids",venueIds)).forEach(v->venues.put((UUID)v.get("id"),(String)v.get("name")));
+        return activeFields.stream().sorted(Comparator.comparing(com.orchedule.field.domain.Field::getName))
             .map(f->new FieldView(f.getId(),f.getName(),venues.getOrDefault(f.getVenueId(),"Instalación"),f.getOpenDays(),f.getOpenHours())).toList();
     }
     @PutMapping("/{fieldId}/opening")
@@ -50,3 +52,4 @@ public class PlanningFieldsApi {
         openings.setOpeningHours(fieldId,body.days(),body.hours());
     }
 }
+

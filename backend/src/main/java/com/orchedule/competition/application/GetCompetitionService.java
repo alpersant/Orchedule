@@ -49,6 +49,7 @@ public class GetCompetitionService {
 
         return competitionRepository.search(
                 status, normalizedSearch,
-                PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt")));
+                PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by("id"))));
     }
 }
+

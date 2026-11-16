@@ -1,0 +1,10 @@
+CREATE INDEX idx_perf_preference_competition_team ON public.team_preference(competition_id, team_id);
+CREATE INDEX idx_perf_preference_day_competition_team ON public.team_preference_day(competition_id, team_id);
+CREATE INDEX idx_perf_preference_hour_competition_team ON public.team_preference_hour(competition_id, team_id);
+CREATE INDEX idx_perf_team_name_id ON public.team(name, id);
+CREATE INDEX idx_perf_venue_name_id ON public.venue(name, id);
+CREATE INDEX idx_perf_competition_created_id ON public.competition(created_at DESC, id);
+CREATE INDEX idx_perf_season_start_id ON public.season(start_date DESC, id);
+CREATE INDEX idx_perf_season_competition_start_id ON public.season(competition_id, start_date DESC, id);
+CREATE INDEX idx_perf_fixture_game_home_time ON public.fixture_game(home_team_id, scheduled_at) WHERE scheduled_at IS NOT NULL;
+CREATE INDEX idx_perf_fixture_game_away_time ON public.fixture_game(away_team_id, scheduled_at) WHERE scheduled_at IS NOT NULL;

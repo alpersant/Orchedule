@@ -73,4 +73,24 @@ public class TeamPreferenceRepositoryAdapter implements TeamPreferenceRepository
                 entity.getRestrictionType(), entity.getExcludedDay(), entity.getExcludedHour(),
                 days, hours, entity.getCreatedAt(), entity.getUpdatedAt());
     }
+
+    @Override
+    public List<TeamPreference> findByTeamIdsAndCompetitionId(List<UUID> teamIds, UUID competitionId) {
+        if (teamIds.isEmpty()) return List.of();
+        // Bound IN lists while preserving the previous caller's order and duplicates.
+        var unique = new java.util.ArrayList<>(new java.util.LinkedHashSet<>(teamIds));
+        var indexed = new java.util.HashMap<UUID, TeamPreference>();
+        for (int offset = 0; offset < unique.size(); offset += 256) {
+            repository.findSelected(unique.subList(offset, Math.min(offset + 256, unique.size())), competitionId)
+                .stream().map(this::toDomain).forEach(p -> indexed.put(p.getTeamId(), p));
+        }
+        return teamIds.stream().map(indexed::get).filter(java.util.Objects::nonNull).toList();
+    }
+
+    @Override
+    public List<TeamPreference> findForActiveTeamsByCompetitionId(UUID competitionId) {
+        return repository.findActiveForCompetition(competitionId).stream().map(this::toDomain).toList();
+    }
+
 }
+

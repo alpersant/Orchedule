@@ -49,4 +49,15 @@ public class GetVenueService {
                 venue.active()
         );
     }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("isAuthenticated()")
+    public com.orchedule.shared.pagination.PageResult<VenueResponse> search(String search, Boolean active, int page, int size) {
+        if (page < 0 || size < 1 || size > 100 || (search != null && search.length() > 150))
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,
+                "page >= 0, 1 <= size <= 100, search <= 150");
+        return venueRepository.search(search, active, page, size).map(this::toResponse);
+    }
+
 }
+

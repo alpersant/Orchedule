@@ -1,3 +1,4 @@
+import '../../../core/widgets/pagination_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -172,6 +173,10 @@ class _TeamsPageState extends ConsumerState<TeamsPage> {
           ),
         ],
       ),
+      bottomNavigationBar: PaginationBar(page: state.page, totalPages: state.totalPages,
+        totalElements: state.totalElements, loading: state.loading,
+        onPage: (page) { setState(() => _selectedIds.clear()); ref.read(teamsProvider.notifier).load(page: page); },
+        onSearch: (search) { setState(() => _selectedIds.clear()); ref.read(teamsProvider.notifier).load(page: 0, search: search); }),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openForm(),
         icon: const Icon(Icons.add),

@@ -14,12 +14,9 @@ import java.util.*;
 public class ApplyWeeklyAvailabilityService {
 
     private final SetFieldAvailabilityForWeekService setForWeekService;
-    private final FieldWeeklyAvailabilityRepository repository;
 
-    public ApplyWeeklyAvailabilityService(SetFieldAvailabilityForWeekService setForWeekService,
-                                          FieldWeeklyAvailabilityRepository repository) {
+    public ApplyWeeklyAvailabilityService(SetFieldAvailabilityForWeekService setForWeekService) {
         this.setForWeekService = setForWeekService;
-        this.repository = repository;
     }
 
     @Transactional

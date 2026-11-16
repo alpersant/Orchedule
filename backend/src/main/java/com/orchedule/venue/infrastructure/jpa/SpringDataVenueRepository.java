@@ -8,7 +8,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.UUID;
 
-public interface SpringDataVenueRepository extends JpaRepository<VenueEntity, UUID> {
+public interface SpringDataVenueRepository extends JpaRepository<VenueEntity, UUID>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<VenueEntity> {
 
     boolean existsByNameIgnoreCase(String name);
 
@@ -23,3 +23,4 @@ public interface SpringDataVenueRepository extends JpaRepository<VenueEntity, UU
             @Param("venueId") UUID venueId
     );
 }
+

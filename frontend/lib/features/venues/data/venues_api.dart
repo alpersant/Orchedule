@@ -126,4 +126,12 @@ class VenuesApi {
       '[VenuesApi] Respuesta: ${error.response?.data}',
     );
   }
+
+  Future<Map<String, dynamic>> search({int page = 0, String search = ''}) async {
+    final response = await _dio.get<Map<String, dynamic>>('$_path/search', queryParameters: {
+      'page': page, 'size': 20,
+      if (search.trim().isNotEmpty) 'search': search.trim(),
+    });
+    return response.data!;
+  }
 }

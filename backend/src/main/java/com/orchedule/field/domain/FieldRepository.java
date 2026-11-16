@@ -15,4 +15,8 @@ public interface FieldRepository {
     List<Field> findAllActive();
 
     boolean existsByVenueIdAndName(UUID venueId, String name);
+
+    List<Field> findEnabledForWeek(UUID seasonId, int weekNumber);
+
 }
+

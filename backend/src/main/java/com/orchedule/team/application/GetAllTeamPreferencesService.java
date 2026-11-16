@@ -1,6 +1,5 @@
 package com.orchedule.team.application;
 
-import com.orchedule.team.domain.Team;
 import com.orchedule.team.domain.TeamPreference;
 import com.orchedule.team.domain.TeamPreferenceRepository;
 import com.orchedule.team.domain.TeamRepository;
@@ -31,19 +30,12 @@ public class GetAllTeamPreferencesService {
 
     @PreAuthorize("isAuthenticated()")
     public List<TeamPreference> getForTeamsAndCompetition(List<UUID> teamIds, UUID competitionId) {
-        return teamIds.stream()
-                .map(teamId -> teamPreferenceRepository.findByTeamIdAndCompetitionId(teamId, competitionId))
-                .filter(java.util.Optional::isPresent)
-                .map(java.util.Optional::get)
-                .toList();
+        return teamPreferenceRepository.findByTeamIdsAndCompetitionId(teamIds, competitionId);
     }
 
     @PreAuthorize("isAuthenticated()")
     public List<TeamPreference> getForAllActiveTeams(UUID competitionId) {
-        List<UUID> activeTeamIds = teamRepository.findAll().stream()
-                .filter(Team::active)
-                .map(Team::id)
-                .toList();
-        return getForTeamsAndCompetition(activeTeamIds, competitionId);
+        return teamPreferenceRepository.findForActiveTeamsByCompetitionId(competitionId);
     }
 }
+

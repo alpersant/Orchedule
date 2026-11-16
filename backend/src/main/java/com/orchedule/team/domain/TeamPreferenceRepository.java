@@ -13,4 +13,9 @@ public interface TeamPreferenceRepository {
     List<TeamPreference> findByCompetitionId(UUID competitionId);
 
     boolean existsByTeamIdAndCompetitionId(UUID teamId, UUID competitionId);
+
+    List<TeamPreference> findByTeamIdsAndCompetitionId(List<UUID> teamIds, UUID competitionId);
+    List<TeamPreference> findForActiveTeamsByCompetitionId(UUID competitionId);
+
 }
+

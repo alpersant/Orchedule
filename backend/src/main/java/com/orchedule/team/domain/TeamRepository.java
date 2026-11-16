@@ -17,4 +17,7 @@ public interface TeamRepository {
     Team update(UUID id, String name, boolean active);
 
     int deleteById(UUID teamId);
+
+    com.orchedule.shared.pagination.PageResult<Team> search(String search, Boolean active, int page, int size);
+
 }

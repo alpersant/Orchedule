@@ -21,4 +21,18 @@ public interface SpringDataFieldRepository extends JpaRepository<FieldEntity, UU
     }
 
     boolean existsByVenueIdAndName(UUID venueId, String name);
+
+    @org.springframework.data.jpa.repository.Query(value = """
+        select f.* from field f
+        join venue v on v.id = f.venue_id
+        join field_weekly_availability w on w.field_id = f.id
+        where w.season_id = :season and w.week_number = :week and w.enabled
+          and f.status = 'ACTIVE' and v.active and v.status = 'ACTIVE'
+        order by f.name, f.id
+        """, nativeQuery = true)
+    List<FieldEntity> findEnabledForWeek(
+        @org.springframework.data.repository.query.Param("season") UUID season,
+        @org.springframework.data.repository.query.Param("week") int week);
+
 }
+
