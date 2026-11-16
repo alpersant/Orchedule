@@ -1,135 +1,99 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../../app/providers.dart';
 import '../data/teams_api.dart';
 import '../domain/team.dart';
 
-final teamsApiProvider = Provider<TeamsApi>((ref) {
-  return TeamsApi(ref.watch(dioProvider));
-});
-
-final teamsProvider = StateNotifierProvider<TeamsController, TeamsState>((ref) {
-  return TeamsController(ref.watch(teamsApiProvider))..load();
-});
+final teamsApiProvider = Provider<TeamsApi>((ref) => TeamsApi(ref.watch(dioProvider)));
+final teamsProvider = StateNotifierProvider<TeamsController, TeamsState>((ref) =>
+    TeamsController(ref.watch(teamsApiProvider))..load());
 
 class TeamsState {
-  const TeamsState({
-    this.items = const [],
-    this.loading = false,
-    this.error,
-  });
-
+  const TeamsState({this.items = const [], this.loading = false, this.error,
+    this.page = 0, this.totalPages = 0, this.totalElements = 0, this.search = ''});
   final List<Team> items;
   final bool loading;
   final String? error;
-
-  TeamsState copyWith({
-    List<Team>? items,
-    bool? loading,
-    String? error,
-    bool clearError = false,
-  }) {
-    return TeamsState(
-      items: items ?? this.items,
-      loading: loading ?? this.loading,
-      error: clearError ? null : (error ?? this.error),
-    );
-  }
+  final int page, totalPages, totalElements;
+  final String search;
 }
 
 class TeamsController extends StateNotifier<TeamsState> {
   TeamsController(this._api) : super(const TeamsState());
-
   final TeamsApi _api;
+  int _request = 0;
+  bool _alive = true;
+  bool _writing = false;
 
-  Future<void> load() async {
-    state = state.copyWith(loading: true, clearError: true);
+  Future<void> load({int? page, String? search}) async {
+    if (!_alive || _writing) return;
+    final token = ++_request;
+    final targetSearch = search ?? state.search;
+    final targetPage = page ?? (search != null ? 0 : state.page);
+    final previous = state;
+    state = TeamsState(items: previous.items, loading: true, page: previous.page,
+      totalPages: previous.totalPages, totalElements: previous.totalElements, search: previous.search);
     try {
-      final teams = await _api.getAll();
-      state = state.copyWith(items: teams, loading: false);
-    } on DioException catch (error) {
-      state = state.copyWith(
-        loading: false,
-        error: _message(error, 'No se han podido cargar los equipos.'),
-      );
-    }
-  }
-
-  Future<bool> save({
-    String? id,
-    required String name,
-    required bool active,
-  }) async {
-    try {
-      final saved = id == null
-          ? await _api.create(name)
-          : await _api.update(id: id, name: name, active: active);
-      final items = [...state.items];
-      final index = items.indexWhere((team) => team.id == saved.id);
-      if (index == -1) {
-        items.add(saved);
-      } else {
-        items[index] = saved;
+      final json = await _api.search(page: targetPage, search: targetSearch);
+      if (!_alive || token != _request) return;
+      final totalPages = json['totalPages'] as int;
+      if (targetPage > 0 && targetPage >= totalPages) {
+        await load(page: totalPages > 0 ? totalPages - 1 : 0, search: targetSearch);
+        return;
       }
-      state = state.copyWith(items: items, clearError: true);
-      return true;
-    } on DioException catch (error) {
-      state = state.copyWith(
-        error: _message(error, 'No se ha podido guardar el equipo.'),
-      );
-      return false;
+      state = TeamsState(
+        items: (json['content'] as List).map((e) => Team.fromJson(Map<String, dynamic>.from(e as Map))).toList(),
+        page: json['page'] as int, totalPages: totalPages,
+        totalElements: json['totalElements'] as int, search: targetSearch);
+    } catch (error) {
+      if (_alive && token == _request) state = TeamsState(items: previous.items,
+        page: previous.page, totalPages: previous.totalPages, totalElements: previous.totalElements,
+        search: previous.search, error: _message(error));
     }
   }
 
-  Future<bool> setActive(Team team, bool active) {
-    return save(id: team.id, name: team.name, active: active);
-  }
+  Future<bool> save({String? id, required String name, required bool active}) =>
+      _write(() => id == null ? _api.create(name) : _api.update(id: id, name: name, active: active));
 
-  Future<bool> deleteById(String teamId) async {
+  Future<bool> deleteById(String id) => _write(() => _api.deleteById(id));
+
+  Future<bool> setActive(Team team, bool active) => save(id: team.id, name: team.name, active: active);
+  Future<bool> deleteBulk(List<String> ids) => ids.isEmpty ? Future.value(true) : _write(() => _api.deleteBulk(ids));
+
+  Future<bool> _write(Future<dynamic> Function() action) async {
+    if (!_alive || _writing || state.loading) return false;
+    _writing = true;
+    ++_request;
+    final previous = state;
+    state = TeamsState(items: previous.items, loading: true, page: previous.page,
+      totalPages: previous.totalPages, totalElements: previous.totalElements, search: previous.search);
     try {
-      await _api.deleteById(teamId);
-      state = state.copyWith(
-        items: state.items.where((team) => team.id != teamId).toList(),
-        clearError: true,
-      );
-      return true;
-    } on DioException catch (error) {
-      state = state.copyWith(
-        error: _message(error, 'No se ha podido eliminar el equipo.'),
-      );
+      await action();
+    } catch (error) {
+      _writing = false;
+      if (_alive) state = TeamsState(items: previous.items, page: previous.page,
+        totalPages: previous.totalPages, totalElements: previous.totalElements,
+        search: previous.search, error: _message(error));
       return false;
     }
+    _writing = false;
+    if (_alive) await load();
+    // A refresh failure must not report that the already committed write failed.
+    return true;
   }
 
-  Future<bool> deleteBulk(List<String> teamIds) async {
-    if (teamIds.isEmpty) return true;
-    try {
-      await _api.deleteBulk(teamIds);
-      final ids = teamIds.toSet();
-      state = state.copyWith(
-        items: state.items.where((team) => !ids.contains(team.id)).toList(),
-        clearError: true,
-      );
-      return true;
-    } on DioException catch (error) {
-      state = state.copyWith(
-        error: _message(error, 'No se han podido eliminar los equipos.'),
-      );
-      return false;
+  String _message(Object error) {
+    if (error is DioException) {
+      final body = error.response?.data;
+      if (body is Map && (body['message'] ?? body['detail']) is String)
+        return (body['message'] ?? body['detail']) as String;
+      if (error.response?.statusCode == 401 || error.response?.statusCode == 403)
+        return 'No tienes permisos para esta operación.';
+      if (error.response?.statusCode == 409) return 'El recurso está en uso o los datos han cambiado.';
     }
+    return 'No se pudo completar la operación. Actualiza para comprobar el estado.';
   }
 
-  String _message(DioException error, String fallback) {
-    final status = error.response?.statusCode;
-    final body = error.response?.data;
-    if (body is Map<String, dynamic>) {
-      final message = body['message'];
-      if (message is String && message.isNotEmpty) return message;
-    }
-    if (status == 401 || status == 403) return 'No tienes permisos para esta operación.';
-    if (status == 404) return 'El equipo ya no existe.';
-    if (status == 409) return 'El equipo está en uso y no se puede eliminar.';
-    return fallback;
-  }
+  @override
+  void dispose() { _alive = false; ++_request; super.dispose(); }
 }

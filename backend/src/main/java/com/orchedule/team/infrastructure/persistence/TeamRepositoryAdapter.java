@@ -58,4 +58,27 @@ public class TeamRepositoryAdapter implements TeamRepository {
     public int deleteById(UUID teamId) {
         return repository.deleteTeamById(teamId);
     }
+
+    @Override
+    public com.orchedule.shared.pagination.PageResult<Team> search(String search, Boolean active, int page, int size) {
+        if (page < 0 || size < 1 || size > 100 || (search != null && search.length() > 150))
+            throw new IllegalArgumentException("Invalid pagination or search");
+        org.springframework.data.jpa.domain.Specification<TeamJpaEntity> spec = (root, query, cb) -> {
+            var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
+            if (active != null) predicates.add(cb.equal(root.get("active"), active));
+            if (search != null && !search.isBlank()) {
+                String escaped = search.trim().toLowerCase(java.util.Locale.ROOT)
+                    .replace("!", "!!").replace("%", "!%").replace("_", "!_");
+                predicates.add(cb.like(cb.lower(root.get("name")), "%" + escaped + "%", '!'));
+            }
+            return cb.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
+        var result = repository.findAll(spec, org.springframework.data.domain.PageRequest.of(page, size,
+            org.springframework.data.domain.Sort.by("name").and(org.springframework.data.domain.Sort.by("id"))))
+            .map(TeamPersistenceMapper::toDomain);
+        return new com.orchedule.shared.pagination.PageResult<>(result.getContent(), result.getNumber(),
+            result.getSize(), result.getTotalElements(), result.getTotalPages(), result.isLast());
+    }
+
 }
+

@@ -28,4 +28,8 @@ public interface VenueRepository {
     boolean existsByNameIgnoreCase(String name);
 
     int deleteByVenueId(UUID venueId);
+
+    com.orchedule.shared.pagination.PageResult<Venue> search(String search, Boolean active, int page, int size);
+
 }
+

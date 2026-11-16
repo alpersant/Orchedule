@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.UUID;
 
-public interface SpringDataTeamRepository extends JpaRepository<TeamJpaEntity, UUID> {
+public interface SpringDataTeamRepository extends JpaRepository<TeamJpaEntity, UUID>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<TeamJpaEntity> {
 
     boolean existsByNameIgnoreCase(String name);
 

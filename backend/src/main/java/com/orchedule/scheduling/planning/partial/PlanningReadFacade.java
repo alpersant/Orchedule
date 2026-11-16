@@ -16,10 +16,11 @@ public class PlanningReadFacade {
         Map<String,Map<String,Object>> issues=new HashMap<>();
         for(var row:repo.issues(season))issues.put(row.get("game_id").toString(),row);
         List<Map<String,Object>> games=copyRows(result.get("games"));Map<String,Integer> assigned=new HashMap<>(),pending=new HashMap<>();
+        var configurations=copyRows(result.get("configuration"));
+        java.time.ZoneId zone=configurations.isEmpty()?java.time.ZoneOffset.UTC:
+            java.time.ZoneId.of(configurations.getFirst().get("zone_id").toString());
         for(var game:games){
             if(game.get("scheduled_at")==null && game.get("proposed_at")!=null){
-                var configurations=copyRows(result.get("configuration"));
-                java.time.ZoneId zone=java.time.ZoneId.of(configurations.getFirst().get("zone_id").toString());
                 game.put("local_start",PartialPlanningRepository.instant(game.get("proposed_at")).atZone(zone).toLocalDateTime().toString());
             }
             String round=game.get("round_id").toString();boolean scheduled=game.get("field_id")!=null&&game.get("scheduled_at")!=null;
@@ -43,4 +44,5 @@ public class PlanningReadFacade {
         List<Map<String,Object>> rows=new ArrayList<>();for(Object row:(List<?>)value)rows.add(new LinkedHashMap<>((Map<String,Object>)row));return rows;
     }
 }
+
 

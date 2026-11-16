@@ -1,3 +1,4 @@
+import '../../../core/widgets/pagination_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -138,6 +139,10 @@ class VenuesPage extends ConsumerWidget {
           ),
         ],
       ),
+      bottomNavigationBar: PaginationBar(page: state.page, totalPages: state.totalPages,
+        totalElements: state.totalElements, loading: state.loading,
+        onPage: (page) { ref.read(venuesProvider.notifier).load(page: page); },
+        onSearch: (search) { ref.read(venuesProvider.notifier).load(page: 0, search: search); }),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openForm(context),
         icon: const Icon(Icons.add),

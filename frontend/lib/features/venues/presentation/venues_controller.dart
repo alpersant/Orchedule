@@ -1,344 +1,101 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../../app/providers.dart';
 import '../data/venues_api.dart';
 import '../domain/venue.dart';
 
-final venuesApiProvider = Provider<VenuesApi>((ref) {
-  return VenuesApi(ref.watch(dioProvider));
-});
-
-final venuesProvider =
-StateNotifierProvider<VenuesController, VenuesState>((ref) {
-  return VenuesController(
-    ref.watch(venuesApiProvider),
-  )..load();
-});
+final venuesApiProvider = Provider<VenuesApi>((ref) => VenuesApi(ref.watch(dioProvider)));
+final venuesProvider = StateNotifierProvider<VenuesController, VenuesState>((ref) =>
+    VenuesController(ref.watch(venuesApiProvider))..load());
 
 class VenuesState {
-  const VenuesState({
-    this.items = const [],
-    this.loading = false,
-    this.error,
-  });
-
+  const VenuesState({this.items = const [], this.loading = false, this.error,
+    this.page = 0, this.totalPages = 0, this.totalElements = 0, this.search = ''});
   final List<Venue> items;
   final bool loading;
   final String? error;
-
-  VenuesState copyWith({
-    List<Venue>? items,
-    bool? loading,
-    String? error,
-    bool clearError = false,
-  }) {
-    return VenuesState(
-      items: items ?? this.items,
-      loading: loading ?? this.loading,
-      error: clearError ? null : (error ?? this.error),
-    );
-  }
+  final int page, totalPages, totalElements;
+  final String search;
 }
 
 class VenuesController extends StateNotifier<VenuesState> {
   VenuesController(this._api) : super(const VenuesState());
-
   final VenuesApi _api;
+  int _request = 0;
+  bool _alive = true;
+  bool _writing = false;
 
-  Future<void> load() async {
-    state = state.copyWith(
-      loading: true,
-      clearError: true,
-    );
-
+  Future<void> load({int? page, String? search}) async {
+    if (!_alive || _writing) return;
+    final token = ++_request;
+    final targetSearch = search ?? state.search;
+    final targetPage = page ?? (search != null ? 0 : state.page);
+    final previous = state;
+    state = VenuesState(items: previous.items, loading: true, page: previous.page,
+      totalPages: previous.totalPages, totalElements: previous.totalElements, search: previous.search);
     try {
-      final venues = await _api.getAll();
-
-      state = state.copyWith(
-        items: venues,
-        loading: false,
-      );
-    } on DioException catch (error, stackTrace) {
-      _logDioError(
-        operation: 'cargar campos',
-        error: error,
-        stackTrace: stackTrace,
-      );
-
-      state = state.copyWith(
-        loading: false,
-        error: _getApiErrorMessage(
-          error,
-          fallback: 'No se han podido cargar los campos.',
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logError(
-        operation: 'cargar campos',
-        error: error,
-        stackTrace: stackTrace,
-      );
-
-      state = state.copyWith(
-        loading: false,
-        error: 'No se han podido cargar los campos.',
-      );
-    }
-  }
-
-  Future<bool> save({
-    String? id,
-    required String name,
-    required String city,
-    String? address,
-    int? capacity,
-    required bool active,
-  }) async {
-    state = state.copyWith(
-      loading: true,
-      clearError: true,
-    );
-
-    try {
-      final saved = id == null
-          ? await _api.create(
-        name: name,
-        city: city,
-        address: address,
-        capacity: capacity,
-      )
-          : await _api.update(
-        id: id,
-        name: name,
-        city: city,
-        address: address,
-        capacity: capacity,
-        active: active,
-      );
-
-      final updatedItems = [...state.items];
-
-      final index = updatedItems.indexWhere(
-            (item) => item.id == saved.id,
-      );
-
-      if (index == -1) {
-        updatedItems.add(saved);
-      } else {
-        updatedItems[index] = saved;
+      final json = await _api.search(page: targetPage, search: targetSearch);
+      if (!_alive || token != _request) return;
+      final totalPages = json['totalPages'] as int;
+      if (targetPage > 0 && targetPage >= totalPages) {
+        await load(page: totalPages > 0 ? totalPages - 1 : 0, search: targetSearch);
+        return;
       }
-
-      state = state.copyWith(
-        items: updatedItems,
-        loading: false,
-        clearError: true,
-      );
-
-      return true;
-    } on DioException catch (error, stackTrace) {
-      _logDioError(
-        operation: id == null ? 'crear campo' : 'actualizar campo',
-        error: error,
-        stackTrace: stackTrace,
-      );
-
-      state = state.copyWith(
-        loading: false,
-        error: _getApiErrorMessage(
-          error,
-          fallback: 'No se ha podido guardar el campo.',
-        ),
-      );
-
-      return false;
-    } catch (error, stackTrace) {
-      _logError(
-        operation: id == null ? 'crear campo' : 'actualizar campo',
-        error: error,
-        stackTrace: stackTrace,
-      );
-
-      state = state.copyWith(
-        loading: false,
-        error: 'No se ha podido guardar el campo.',
-      );
-
-      return false;
+      state = VenuesState(
+        items: (json['content'] as List).map((e) => Venue.fromJson(Map<String, dynamic>.from(e as Map))).toList(),
+        page: json['page'] as int, totalPages: totalPages,
+        totalElements: json['totalElements'] as int, search: targetSearch);
+    } catch (error) {
+      if (_alive && token == _request) state = VenuesState(items: previous.items,
+        page: previous.page, totalPages: previous.totalPages, totalElements: previous.totalElements,
+        search: previous.search, error: _message(error));
     }
   }
 
-  Future<bool> setActive(
-      Venue venue,
-      bool active,
-      ) async {
-    if (venue.id == null) {
-      state = state.copyWith(
-        error: 'El campo no tiene identificador.',
-      );
+  Future<bool> save({String? id, required String name, required String city, String? address, int? capacity, required bool active}) =>
+      _write(() => id == null ? _api.create(name: name, city: city, address: address, capacity: capacity) : _api.update(id: id, name: name, city: city, address: address, capacity: capacity, active: active));
 
-      return false;
-    }
+  Future<bool> deleteById(String id) => _write(() => _api.deleteById(id));
 
+  Future<bool> setActive(Venue venue, bool active) async {
+    if (venue.id == null) return false;
+    return _write(() => active ? _api.activate(venue.id!) : _api.deactivate(venue.id!));
+  }
+
+  Future<bool> _write(Future<dynamic> Function() action) async {
+    if (!_alive || _writing || state.loading) return false;
+    _writing = true;
+    ++_request;
+    final previous = state;
+    state = VenuesState(items: previous.items, loading: true, page: previous.page,
+      totalPages: previous.totalPages, totalElements: previous.totalElements, search: previous.search);
     try {
-      final updatedVenue = active
-          ? await _api.activate(venue.id!)
-          : await _api.deactivate(venue.id!);
-
-      final updatedItems = state.items.map((item) {
-        return item.id == updatedVenue.id ? updatedVenue : item;
-      }).toList();
-
-      state = state.copyWith(
-        items: updatedItems,
-        clearError: true,
-      );
-
-      return true;
-    } on DioException catch (error, stackTrace) {
-      _logDioError(
-        operation: active ? 'activar campo' : 'desactivar campo',
-        error: error,
-        stackTrace: stackTrace,
-      );
-
-      state = state.copyWith(
-        error: _getApiErrorMessage(
-          error,
-          fallback: 'No se ha podido cambiar el estado del campo.',
-        ),
-      );
-
-      return false;
-    } catch (error, stackTrace) {
-      _logError(
-        operation: active ? 'activar campo' : 'desactivar campo',
-        error: error,
-        stackTrace: stackTrace,
-      );
-
-      state = state.copyWith(
-        error: 'No se ha podido cambiar el estado del campo.',
-      );
-
+      await action();
+    } catch (error) {
+      _writing = false;
+      if (_alive) state = VenuesState(items: previous.items, page: previous.page,
+        totalPages: previous.totalPages, totalElements: previous.totalElements,
+        search: previous.search, error: _message(error));
       return false;
     }
+    _writing = false;
+    if (_alive) await load();
+    // A refresh failure must not report that the already committed write failed.
+    return true;
   }
 
-  Future<bool> deleteById(String id) async {
-    if (id.isEmpty) {
-      state = state.copyWith(
-        error: 'El campo no tiene identificador.',
-      );
-
-      return false;
+  String _message(Object error) {
+    if (error is DioException) {
+      final body = error.response?.data;
+      if (body is Map && (body['message'] ?? body['detail']) is String)
+        return (body['message'] ?? body['detail']) as String;
+      if (error.response?.statusCode == 401 || error.response?.statusCode == 403)
+        return 'No tienes permisos para esta operación.';
+      if (error.response?.statusCode == 409) return 'El recurso está en uso o los datos han cambiado.';
     }
-
-    try {
-      await _api.deleteById(id);
-
-      state = state.copyWith(
-        items: state.items
-            .where((venue) => venue.id != id)
-            .toList(),
-        clearError: true,
-      );
-
-      return true;
-    } on DioException catch (error, stackTrace) {
-      _logDioError(
-        operation: 'eliminar campo',
-        error: error,
-        stackTrace: stackTrace,
-      );
-
-      state = state.copyWith(
-        error: _getApiErrorMessage(
-          error,
-          fallback: 'No se ha podido eliminar el campo.',
-        ),
-      );
-
-      return false;
-    } catch (error, stackTrace) {
-      _logError(
-        operation: 'eliminar campo',
-        error: error,
-        stackTrace: stackTrace,
-      );
-
-      state = state.copyWith(
-        error: 'No se ha podido eliminar el campo.',
-      );
-
-      return false;
-    }
+    return 'No se pudo completar la operación. Actualiza para comprobar el estado.';
   }
 
-  String _getApiErrorMessage(
-      DioException error, {
-        required String fallback,
-      }) {
-    final statusCode = error.response?.statusCode;
-    final data = error.response?.data;
-
-    if (data is Map<String, dynamic>) {
-      final message = data['message'] ?? data['error'];
-
-      if (message is String && message.trim().isNotEmpty) {
-        return 'Error $statusCode: $message';
-      }
-
-      final errors = data['errors'];
-
-      if (errors is List && errors.isNotEmpty) {
-        return errors.join(', ');
-      }
-    }
-
-    if (statusCode == 400) {
-      return 'Los datos enviados no son válidos.';
-    }
-
-    if (statusCode == 401 || statusCode == 403) {
-      return 'La sesión no es válida o no tienes permisos.';
-    }
-
-    if (statusCode == 404) {
-      return 'El endpoint o el campo no existe.';
-    }
-
-    if (statusCode == 409) {
-      return 'Ya existe un campo con esos datos.';
-    }
-
-    if (error.type == DioExceptionType.connectionError) {
-      return 'No se puede conectar con el backend.';
-    }
-
-    return fallback;
-  }
-
-  void _logDioError({
-    required String operation,
-    required DioException error,
-    required StackTrace stackTrace,
-  }) {
-    print('[$operation] DioException');
-    print('URL: ${error.requestOptions.uri}');
-    print('Método: ${error.requestOptions.method}');
-    print('Status: ${error.response?.statusCode}');
-    print('Respuesta: ${error.response?.data}');
-    print('Mensaje: ${error.message}');
-    print(stackTrace);
-  }
-
-  void _logError({
-    required String operation,
-    required Object error,
-    required StackTrace stackTrace,
-  }) {
-    print('[$operation] Error: $error');
-    print(stackTrace);
-  }
+  @override
+  void dispose() { _alive = false; ++_request; super.dispose(); }
 }

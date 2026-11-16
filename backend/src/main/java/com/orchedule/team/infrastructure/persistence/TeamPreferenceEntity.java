@@ -43,10 +43,12 @@ public class TeamPreferenceEntity {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    @org.hibernate.annotations.BatchSize(size = 64)
     @OneToMany(mappedBy = "teamPreference", cascade = CascadeType.ALL,
             orphanRemoval = true, fetch = FetchType.LAZY)
     private List<TeamPreferenceDayEntity> dayPreferences = new ArrayList<>();
 
+    @org.hibernate.annotations.BatchSize(size = 64)
     @OneToMany(mappedBy = "teamPreference", cascade = CascadeType.ALL,
             orphanRemoval = true, fetch = FetchType.LAZY)
     private List<TeamPreferenceHourEntity> hourPreferences = new ArrayList<>();
@@ -121,3 +123,4 @@ public class TeamPreferenceEntity {
         public int hashCode() { return Objects.hash(teamId, competitionId); }
     }
 }
+

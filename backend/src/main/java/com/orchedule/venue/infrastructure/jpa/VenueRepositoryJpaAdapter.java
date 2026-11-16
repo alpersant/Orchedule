@@ -76,4 +76,27 @@ public class VenueRepositoryJpaAdapter implements VenueRepository {
     public int deleteByVenueId(UUID venueId) {
         return springDataVenueRepository.deleteByVenueId(venueId);
     }
+
+    @Override
+    public com.orchedule.shared.pagination.PageResult<Venue> search(String search, Boolean active, int page, int size) {
+        if (page < 0 || size < 1 || size > 100 || (search != null && search.length() > 150))
+            throw new IllegalArgumentException("Invalid pagination or search");
+        org.springframework.data.jpa.domain.Specification<VenueEntity> spec = (root, query, cb) -> {
+            var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
+            if (active != null) predicates.add(cb.equal(root.get("active"), active));
+            if (search != null && !search.isBlank()) {
+                String escaped = search.trim().toLowerCase(java.util.Locale.ROOT)
+                    .replace("!", "!!").replace("%", "!%").replace("_", "!_");
+                predicates.add(cb.like(cb.lower(root.get("name")), "%" + escaped + "%", '!'));
+            }
+            return cb.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
+        var result = springDataVenueRepository.findAll(spec, org.springframework.data.domain.PageRequest.of(page, size,
+            org.springframework.data.domain.Sort.by("name").and(org.springframework.data.domain.Sort.by("id"))))
+            .map(VenueEntity::toDomain);
+        return new com.orchedule.shared.pagination.PageResult<>(result.getContent(), result.getNumber(),
+            result.getSize(), result.getTotalElements(), result.getTotalPages(), result.isLast());
+    }
+
 }
+

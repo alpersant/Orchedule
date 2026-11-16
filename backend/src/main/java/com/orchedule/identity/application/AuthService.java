@@ -23,6 +23,7 @@ import java.util.UUID;
 @Service
 public class AuthService {
 
+    public static final String INVALID_CREDENTIALS = "Invalid credentials";
     private final UserAuthQuery userAuthQuery;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordService passwordService;
@@ -73,10 +74,10 @@ public class AuthService {
     public AuthResponse login(String email, String rawPassword) {
         UserAuthView user = userAuthQuery.findByEmail(normalizeEmail(email))
                 .filter(UserAuthView::active)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
+                .orElseThrow(() -> new IllegalArgumentException(INVALID_CREDENTIALS));
 
         if (!passwordService.matches(rawPassword, user.passwordHash())) {
-            throw new IllegalArgumentException("Invalid credentials");
+            throw new IllegalArgumentException(INVALID_CREDENTIALS);
         }
 
         return issueTokens(user);
@@ -85,19 +86,19 @@ public class AuthService {
     @Transactional
     public AuthResponse refresh(String refreshToken) {
         if (!tokenService.isValid(refreshToken) || !tokenService.isRefreshToken(refreshToken)) {
-            throw new IllegalArgumentException("Invalid credentials");
+            throw new IllegalArgumentException(INVALID_CREDENTIALS);
         }
 
         UUID userId = UUID.fromString(tokenService.getSubject(refreshToken));
 
         UserAuthView user = userAuthQuery.findActiveById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
+                .orElseThrow(() -> new IllegalArgumentException(INVALID_CREDENTIALS));
 
         String refreshTokenHash = refreshTokenHashService.hash(refreshToken);
 
         refreshTokenRepository.findByTokenHash(refreshTokenHash)
                 .filter(RefreshToken::isValid)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
+                .orElseThrow(() -> new IllegalArgumentException(INVALID_CREDENTIALS));
 
         refreshTokenRepository.revokeAllByUserId(user.id());
 

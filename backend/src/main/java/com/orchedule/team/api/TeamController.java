@@ -88,4 +88,14 @@ public class TeamController {
             @RequestParam UUID competitionId) {
         return ResponseEntity.ok(getTeamPreferenceService.getByTeamIdAndCompetitionId(teamId, competitionId));
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<com.orchedule.shared.pagination.PageResult<TeamResponse>> search(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(getTeamService.search(search, active, page, size));
+    }
+
 }

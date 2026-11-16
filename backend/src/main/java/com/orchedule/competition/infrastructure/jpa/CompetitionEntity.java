@@ -37,6 +37,7 @@ public class CompetitionEntity {
     @Column(nullable = false, length = 20)
     private CompetitionStatus status;
 
+    @org.hibernate.annotations.BatchSize(size = 64)
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
             name = "competition_default_days",
@@ -46,6 +47,7 @@ public class CompetitionEntity {
     @Column(name = "day", nullable = false, length = 20)
     private Set<CompetitionDay> defaultDays = new HashSet<>();
 
+    @org.hibernate.annotations.BatchSize(size = 64)
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
             name = "competition_default_hours",

@@ -49,14 +49,15 @@ public class SchedulingRuleValidator {
         int week = ((Number) Objects.requireNonNull(game.get("week_number"))).intValue();
         Instant at = ((Timestamp) Objects.requireNonNull(game.get("scheduled_at"))).toInstant();
 
-        assertRest(seasonId, homeId, gameId, at);
-        assertRest(seasonId, awayId, gameId, at);
-        assertWeeklyLimit(seasonId, homeId, week, gameId);
-        assertWeeklyLimit(seasonId, awayId, week, gameId);
+        int[] homeRule = effectiveRule(seasonId, homeId);
+        int[] awayRule = effectiveRule(seasonId, awayId);
+        assertRest(seasonId, homeId, gameId, at, homeRule[0]);
+        assertRest(seasonId, awayId, gameId, at, awayRule[0]);
+        assertWeeklyLimit(seasonId, homeId, week, gameId, homeRule[1]);
+        assertWeeklyLimit(seasonId, awayId, week, gameId, awayRule[1]);
     }
 
-    private void assertRest(UUID seasonId, UUID teamId, UUID gameId, Instant proposedAt) {
-        int minRestHours = effectiveRule(seasonId, teamId)[0];
+    private void assertRest(UUID seasonId, UUID teamId, UUID gameId, Instant proposedAt, int minRestHours) {
 
         var rows = db.queryForList("""
             SELECT g.id, g.scheduled_at
@@ -85,8 +86,7 @@ public class SchedulingRuleValidator {
         }
     }
 
-    private void assertWeeklyLimit(UUID seasonId, UUID teamId, int week, UUID gameId) {
-        int max = effectiveRule(seasonId, teamId)[1];
+    private void assertWeeklyLimit(UUID seasonId, UUID teamId, int week, UUID gameId, int max) {
 
         Integer count = db.queryForObject("""
             SELECT COUNT(*)
@@ -141,3 +141,4 @@ public class SchedulingRuleValidator {
         return new int[] {minRestHours, maxMatchesPerWeek};
     }
 }
+

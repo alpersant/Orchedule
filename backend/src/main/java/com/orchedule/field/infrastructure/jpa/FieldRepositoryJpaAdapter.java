@@ -53,4 +53,12 @@ public class FieldRepositoryJpaAdapter implements FieldRepository {
                 entity.getOpenDaysSet(), entity.getOpenHoursSet(),
                 entity.getCreatedAt(), entity.getUpdatedAt());
     }
+
+    @Override
+    public List<Field> findEnabledForWeek(UUID seasonId, int weekNumber) {
+        return springDataFieldRepository.findEnabledForWeek(seasonId, weekNumber)
+            .stream().map(this::toDomain).toList();
+    }
+
 }
+
