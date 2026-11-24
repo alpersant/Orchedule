@@ -1,5 +1,6 @@
 package com.orchedule.infrastructure.security;
 
+import com.orchedule.identity.domain.RefreshTokenHasher;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -8,8 +9,9 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
 @Service
-public class RefreshTokenHashService {
+public class RefreshTokenHashService implements RefreshTokenHasher {
 
+    @Override
     public String hash(String rawToken) {
         if (rawToken == null || rawToken.isBlank()) {
             throw new IllegalArgumentException("Refresh token is required");

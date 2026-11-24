@@ -11,14 +11,6 @@ class ModularityTest {
 
     ApplicationModules modules = ApplicationModules.of(OrcheduleBackendApplication.class);
 
-    // TODO(performance/architecture): temporarily disabled.
-    // Spring Modulith detects real module cycles:
-    // - field <-> scheduling
-    // - identity <-> infrastructure
-    // - scheduling <-> team
-    // and non-exposed shared/identity/scheduling types.
-    // Re-enable after refactoring module boundaries and exposing proper ports.
-    @Disabled("Temporary: module cycles and non-exposed types must be refactored")
     @Test
     void verifiesModularStructure() {
         modules.verify();
