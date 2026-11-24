@@ -1,4 +1,4 @@
-package com.orchedule.field.infrastructure.integration;
+package com.orchedule.infrastructure.integration;
 
 import com.orchedule.field.domain.Field;
 import com.orchedule.field.domain.FieldRepository;

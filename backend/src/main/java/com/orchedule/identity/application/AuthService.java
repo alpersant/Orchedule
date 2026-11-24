@@ -5,14 +5,14 @@ import com.orchedule.identity.api.UserAuthQuery;
 import com.orchedule.identity.api.UserAuthView;
 import com.orchedule.identity.api.dto.RegisterRequest;
 import com.orchedule.identity.application.exception.AlreadyExistsException;
+import com.orchedule.identity.domain.PasswordHasher;
 import com.orchedule.identity.domain.RefreshToken;
+import com.orchedule.identity.domain.RefreshTokenHasher;
 import com.orchedule.identity.domain.RefreshTokenRepository;
 import com.orchedule.identity.domain.RegisterUserCommand;
 import com.orchedule.identity.domain.Role;
 import com.orchedule.identity.domain.TokenService;
 import com.orchedule.identity.domain.UserRepository;
-import com.orchedule.infrastructure.security.PasswordService;
-import com.orchedule.infrastructure.security.RefreshTokenHashService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,25 +24,26 @@ import java.util.UUID;
 public class AuthService {
 
     public static final String INVALID_CREDENTIALS = "Invalid credentials";
+
     private final UserAuthQuery userAuthQuery;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final PasswordService passwordService;
-    private final RefreshTokenHashService refreshTokenHashService;
+    private final PasswordHasher passwordHasher;
+    private final RefreshTokenHasher refreshTokenHasher;
     private final TokenService tokenService;
     private final UserRepository userRepository;
 
     public AuthService(
             UserAuthQuery userAuthQuery,
             RefreshTokenRepository refreshTokenRepository,
-            PasswordService passwordService,
-            RefreshTokenHashService refreshTokenHashService,
+            PasswordHasher passwordHasher,
+            RefreshTokenHasher refreshTokenHasher,
             TokenService tokenService,
             UserRepository userRepository
     ) {
         this.userAuthQuery = userAuthQuery;
         this.refreshTokenRepository = refreshTokenRepository;
-        this.passwordService = passwordService;
-        this.refreshTokenHashService = refreshTokenHashService;
+        this.passwordHasher = passwordHasher;
+        this.refreshTokenHasher = refreshTokenHasher;
         this.tokenService = tokenService;
         this.userRepository = userRepository;
     }
@@ -58,7 +59,7 @@ public class AuthService {
         UUID userId = userRepository.register(new RegisterUserCommand(
                 email,
                 request.fullName().trim(),
-                passwordService.hash(request.password()),
+                passwordHasher.hash(request.password()),
                 Role.USER,
                 true,
                 false
@@ -76,7 +77,7 @@ public class AuthService {
                 .filter(UserAuthView::active)
                 .orElseThrow(() -> new IllegalArgumentException(INVALID_CREDENTIALS));
 
-        if (!passwordService.matches(rawPassword, user.passwordHash())) {
+        if (!passwordHasher.matches(rawPassword, user.passwordHash())) {
             throw new IllegalArgumentException(INVALID_CREDENTIALS);
         }
 
@@ -94,7 +95,7 @@ public class AuthService {
         UserAuthView user = userAuthQuery.findActiveById(userId)
                 .orElseThrow(() -> new IllegalArgumentException(INVALID_CREDENTIALS));
 
-        String refreshTokenHash = refreshTokenHashService.hash(refreshToken);
+        String refreshTokenHash = refreshTokenHasher.hash(refreshToken);
 
         refreshTokenRepository.findByTokenHash(refreshTokenHash)
                 .filter(RefreshToken::isValid)
@@ -111,7 +112,7 @@ public class AuthService {
             return;
         }
 
-        String hash = refreshTokenHashService.hash(refreshToken);
+        String hash = refreshTokenHasher.hash(refreshToken);
         refreshTokenRepository.findByTokenHash(hash)
                 .ifPresent(token -> refreshTokenRepository.revokeAllByUserId(token.getUserId()));
     }
@@ -129,7 +130,7 @@ public class AuthService {
         refreshTokenRepository.save(new RefreshToken(
                 null,
                 user.id(),
-                refreshTokenHashService.hash(refreshToken),
+                refreshTokenHasher.hash(refreshToken),
                 expiresAt,
                 false,
                 now,
