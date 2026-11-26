@@ -91,7 +91,7 @@ public class GameAssignmentService {
         try {
             value = LocalDateTime.parse(local);
         } catch (DateTimeException | NullPointerException e) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT,
                     "Introduce una fecha y hora local válida.");
         }
 
