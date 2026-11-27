@@ -56,7 +56,7 @@ public class GameAssignmentService {
         var row = rows.getFirst();
         Round r = repo.round(season, com.orchedule.shared.jdbc.JdbcValues.requiredInt(row, "round_number"));
 
-        if (version != null && r.version() != version) {
+        if (version != null && r.version() != version.longValue()) {
             throw conflict("La jornada ha cambiado. Actualiza antes de guardar.");
         }
         if (r.status().equals("CANCELLED")) {
@@ -219,7 +219,7 @@ public class GameAssignmentService {
 
             for (int i = 0; i + 2 < rotation.size(); i++) {
                 var triple = rotation.subList(i, i + 3);
-                if (triple.stream().noneMatch(e -> e.getKey() == r.number())) {
+                if (triple.stream().noneMatch(e -> e.getKey().intValue() == r.number())) {
                     continue;
                 }
 

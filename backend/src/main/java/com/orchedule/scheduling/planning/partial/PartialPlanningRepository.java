@@ -256,7 +256,7 @@ public class PartialPlanningRepository {
     private SlotPriority requiredPriority(Object rawPriority) {
         String priority = Objects.toString(rawPriority, "");
 
-        if (!Set.of("FIRST_PARAM", "SECOND").contains(priority)) {
+        if (!Set.of(FIRST_PARAM, "SECOND").contains(priority)) {
             throw new IllegalArgumentException("Prioridad de preferencia no válida");
         }
 
