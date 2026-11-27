@@ -147,11 +147,11 @@ public class PartialSlotResolver {
                     boolean occupied = false;
                     for (Block block : blocks) {
                         boolean affected =
-                                block.scope().equals("TEAM")
-                                        && (block.reference().equals(game.home())
-                                        || block.reference().equals(game.away()))
-                                        || block.scope().equals("VENUE")
-                                        && Objects.equals(block.reference(), venues.get(slot.fieldId()));
+                                ("TEAM".equals(block.scope())
+                                        && (Objects.equals(block.reference(), game.home())
+                                        || Objects.equals(block.reference(), game.away())))
+                                        || ("VENUE".equals(block.scope())
+                                        && Objects.equals(block.reference(), venues.get(slot.fieldId())));
 
                         if (affected && at.isBefore(block.end())
                                 && block.start().isBefore(at.plusSeconds(round.duration() * 60L))) {
@@ -165,7 +165,7 @@ public class PartialSlotResolver {
 
                     for (Booking b : bookings) {
                         boolean resource = Objects.equals(b.field(), slot.fieldId())
-                                || b.field() == null && Objects.equals(b.venue(), venues.get(slot.fieldId()))
+                                || (b.field() == null && Objects.equals(b.venue(), venues.get(slot.fieldId())))
                                 || List.of(game.home(), game.away()).contains(b.home())
                                 || List.of(game.home(), game.away()).contains(b.away());
 
