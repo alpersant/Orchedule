@@ -10,15 +10,22 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
-@Component
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+/**
+ * Autentica peticiones con un JWT de acceso en la cabecera {@code Authorization: Bearer}.
+ *
+ * <p><strong>No es un bean de Spring</strong> a propósito: lo instancia {@code SecurityConfig} y lo
+ * añade a la cadena de seguridad. Si fuese un {@code @Component}, Spring Modulith (observabilidad)
+ * lo envolvería en un proxy CGLIB y, como {@code GenericFilterBean.init} es {@code final}, el
+ * contenedor fallaría al arrancar con un {@code NullPointerException} en {@code logger}. Además,
+ * un filtro registrado como bean se añadiría una segunda vez a la cadena del contenedor servlet.</p>
+ */
+public final class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";

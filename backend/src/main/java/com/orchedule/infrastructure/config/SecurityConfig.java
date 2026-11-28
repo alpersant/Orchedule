@@ -1,5 +1,7 @@
 package com.orchedule.infrastructure.config;
 
+import com.orchedule.identity.api.UserAuthQuery;
+import com.orchedule.identity.domain.TokenService;
 import com.orchedule.infrastructure.security.JwtAuthenticationFilter;
 import com.orchedule.infrastructure.security.JwtProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -22,14 +24,29 @@ import org.springframework.security.web.access.AccessDeniedHandlerImpl;
 @EnableConfigurationProperties(JwtProperties.class)
 public class SecurityConfig {
 
+    /**
+     * Cadena de seguridad de la API REST.
+     *
+     * <p>CSRF está desactivado de forma deliberada: la API es stateless y solo acepta
+     * credenciales en la cabecera {@code Authorization: Bearer}, que el navegador no
+     * adjunta automáticamente. No se usan sesiones, cookies de autenticación,
+     * formLogin ni HTTP Basic. Si en el futuro el token se transporta en una cookie,
+     * esta decisión debe revisarse y CSRF volver a activarse.</p>
+     *
+     * <p>El filtro JWT se crea aquí y no es un bean: así no se registra también en el contenedor
+     * servlet ni lo envuelve ningún proxy (ver {@link JwtAuthenticationFilter}).</p>
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
-            JwtAuthenticationFilter jwtAuthenticationFilter
+            TokenService tokenService,
+            UserAuthQuery userAuthQuery
     ) {
+        JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(tokenService, userAuthQuery);
+
         return http
                 .cors(Customizer.withDefaults())
-                .csrf(AbstractHttpConfigurer::disable)
+                .csrf(AbstractHttpConfigurer::disable) // NOSONAR S4502: API stateless con Bearer en cabecera, sin cookies
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)

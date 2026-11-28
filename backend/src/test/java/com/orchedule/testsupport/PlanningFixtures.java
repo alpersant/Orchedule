@@ -49,6 +49,20 @@ public final class PlanningFixtures {
                 """, Map.of("season", season));
     }
 
+    /** Inscribe al equipo en el calendario de la temporada (requiere {@link #plan(UUID)}). */
+    public void participant(UUID season, UUID team) {
+        db.update("INSERT INTO fixture_participant(season_id,team_id) VALUES(:season,:team)",
+                Map.of("season", season, "team", team));
+    }
+
+    /** Regla propia de un equipo que sustituye a los valores por defecto del plan. */
+    public void teamRule(UUID season, UUID team, int minRestHours, int maxMatchesPerWeek) {
+        db.update("""
+                INSERT INTO fixture_team_rule(season_id,team_id,min_rest_hours,max_matches_per_week)
+                VALUES(:season,:team,:rest,:max)
+                """, Map.of("season", season, "team", team, "rest", minRestHours, "max", maxMatchesPerWeek));
+    }
+
     public UUID team(String label, boolean active) {
         UUID id = UUID.randomUUID();
         db.update("""

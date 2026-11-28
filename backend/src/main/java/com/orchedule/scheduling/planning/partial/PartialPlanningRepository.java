@@ -21,6 +21,24 @@ public class PartialPlanningRepository {
     public static final String VENUE_ID_PARAM = "venue_id";
     public static final String TEAM_ID_PARAM = "team_id";
     public static final String FIRST_PARAM = "FIRST";
+
+    private static final String BASE_PREFERENCES_SQL = """
+            SELECT p.*,t.active
+            FROM team_preference p
+            JOIN team t ON t.id=p.team_id
+            WHERE p.competition_id=:c AND p.team_id IN (:teams)
+            """;
+    private static final String DAY_PREFERENCES_SQL = """
+            SELECT team_id,day,priority
+            FROM team_preference_day
+            WHERE competition_id=:c AND team_id IN (:teams)
+            """;
+    private static final String HOUR_PREFERENCES_SQL = """
+            SELECT team_id,hour,priority
+            FROM team_preference_hour
+            WHERE competition_id=:c AND team_id IN (:teams)
+            """;
+
     private final NamedParameterJdbcTemplate db;
 
     public PartialPlanningRepository(NamedParameterJdbcTemplate db) {
@@ -35,7 +53,7 @@ public class PartialPlanningRepository {
         return rows.getFirst();
     }
 
-    static Instant instant(Object value) {
+    public static Instant instant(Object value) {
         return switch (value) {
             case null -> null;
             case Timestamp t -> t.toInstant();
@@ -128,34 +146,29 @@ public class PartialPlanningRepository {
             """, Map.of("s", r.season(), "w", r.week()));
     }
 
+    /** Lee las preferencias bloqueando las filas (FOR SHARE): solo para flujos de escritura. */
     public Map<UUID, Preferences> preferences(UUID competition, Set<UUID> teams) {
+        return loadPreferences(competition, teams, true);
+    }
+
+    /** Lee las preferencias sin bloqueos: apta para informes y transacciones de solo lectura. */
+    public Map<UUID, Preferences> readPreferences(UUID competition, Set<UUID> teams) {
+        return loadPreferences(competition, teams, false);
+    }
+
+    private Map<UUID, Preferences> loadPreferences(UUID competition, Set<UUID> teams, boolean lockRows) {
         if (teams.isEmpty()) {
             return Map.of();
         }
 
         var parameters = Map.of("c", competition, "teams", teams);
 
-        var basePreferences = db.queryForList("""
-        SELECT p.*,t.active
-        FROM team_preference p
-        JOIN team t ON t.id=p.team_id
-        WHERE p.competition_id=:c AND p.team_id IN (:teams)
-        FOR SHARE OF p,t
-        """, parameters);
-
-        var dayPreferences = db.queryForList("""
-        SELECT team_id,day,priority
-        FROM team_preference_day
-        WHERE competition_id=:c AND team_id IN (:teams)
-        FOR SHARE
-        """, parameters);
-
-        var hourPreferences = db.queryForList("""
-        SELECT team_id,hour,priority
-        FROM team_preference_hour
-        WHERE competition_id=:c AND team_id IN (:teams)
-        FOR SHARE
-        """, parameters);
+        var basePreferences = db.queryForList(
+                BASE_PREFERENCES_SQL + (lockRows ? "FOR SHARE OF p,t" : ""), parameters);
+        var dayPreferences = db.queryForList(
+                DAY_PREFERENCES_SQL + (lockRows ? "FOR SHARE" : ""), parameters);
+        var hourPreferences = db.queryForList(
+                HOUR_PREFERENCES_SQL + (lockRows ? "FOR SHARE" : ""), parameters);
 
         Map<UUID, Preferences> result = new HashMap<>();
 
